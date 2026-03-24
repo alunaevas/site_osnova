@@ -29,7 +29,7 @@
         linear-gradient(160deg, rgba(253, 247, 255, 0.82) 0%, rgba(244, 220, 250, 0.72) 48%, rgba(235, 197, 243, 0.78) 100%),
         radial-gradient(circle at top left, rgba(173, 66, 193, 0.22), transparent 28%),
         radial-gradient(circle at top right, rgba(127, 36, 146, 0.18), transparent 24%),
-        url("fon.png") center / cover no-repeat fixed;
+        url("fon.png") center top / contain no-repeat fixed;
       padding: 0;
     }
 
@@ -1549,13 +1549,14 @@
     }
 
     function getDocumentHeight() {
-      return Math.max(
-        document.body.scrollHeight,
-        document.body.offsetHeight,
-        document.documentElement.scrollHeight,
-        document.documentElement.offsetHeight,
-        document.documentElement.clientHeight
-      );
+      const game = document.querySelector(".game");
+
+      if (game) {
+        const rect = game.getBoundingClientRect();
+        return Math.ceil(rect.height);
+      }
+
+      return Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
     }
 
     function notifyParentHeight() {
