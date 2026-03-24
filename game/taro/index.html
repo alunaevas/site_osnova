@@ -1,0 +1,1637 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Таро проектировщика</title>
+  <style>
+    :root {
+      --bg: #f8eefb;
+      --panel: rgba(255, 250, 255, 0.9);
+      --ink: #24182c;
+      --accent: #ad42c1;
+      --accent-dark: #7f2492;
+      --accent-soft: #efc8f7;
+      --glow: #f6dcfb;
+      --line: rgba(90, 32, 103, 0.14);
+      --shadow: 0 24px 64px rgba(90, 32, 103, 0.22);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Verdana", sans-serif;
+      color: var(--ink);
+      background:
+        linear-gradient(160deg, rgba(253, 247, 255, 0.82) 0%, rgba(244, 220, 250, 0.72) 48%, rgba(235, 197, 243, 0.78) 100%),
+        radial-gradient(circle at top left, rgba(173, 66, 193, 0.22), transparent 28%),
+        radial-gradient(circle at top right, rgba(127, 36, 146, 0.18), transparent 24%),
+        url("fon.png") center / cover no-repeat fixed;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .game {
+      position: relative;
+      width: min(980px, 100%);
+      background: rgba(255, 250, 255, 0.82);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .hero {
+      padding: 28px 28px 12px;
+      text-align: center;
+    }
+
+    .hero-logo {
+      width: min(640px, 92vw);
+      height: auto;
+      display: block;
+      margin: 0 auto 18px;
+      filter: drop-shadow(0 12px 24px rgba(127, 36, 146, 0.18));
+    }
+
+    .hero-link {
+      display: block;
+      text-decoration: none;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(173, 66, 193, 0.14);
+      color: var(--accent-dark);
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 14px 0 10px;
+      font-size: clamp(32px, 5vw, 58px);
+      line-height: 0.95;
+    }
+
+    .subtitle {
+      max-width: 700px;
+      margin: 0 auto;
+      font-size: 18px;
+      line-height: 1.5;
+      opacity: 0.88;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 1.1fr;
+      gap: 24px;
+      padding: 18px 28px 32px;
+    }
+
+    .deck-zone,
+    .result {
+      background: rgba(255, 255, 255, 0.56);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 22px;
+    }
+
+    .deck-zone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      min-height: 520px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .deck-zone::before,
+    .deck-zone::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0.18;
+      pointer-events: none;
+    }
+
+    .deck-zone::before {
+      width: 220px;
+      height: 220px;
+      background: var(--accent-soft);
+      top: -80px;
+      left: -80px;
+    }
+
+    .deck-zone::after {
+      width: 180px;
+      height: 180px;
+      background: rgba(173, 66, 193, 0.92);
+      bottom: -70px;
+      right: -40px;
+    }
+
+    .card-wrap {
+      width: min(320px, 84%);
+      aspect-ratio: 3 / 5;
+      perspective: 1200px;
+      z-index: 1;
+    }
+
+    .card {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.85s ease;
+      cursor: pointer;
+    }
+
+    .card.revealed {
+      transform: rotateY(180deg) rotateZ(-1.5deg);
+    }
+
+    .face {
+      position: absolute;
+      inset: 0;
+      border-radius: 26px;
+      backface-visibility: hidden;
+      overflow: hidden;
+      box-shadow: 0 16px 35px rgba(31, 42, 46, 0.15);
+    }
+
+    .back {
+      background:
+        linear-gradient(180deg, rgba(43, 14, 50, 0.16), rgba(86, 21, 96, 0.28)),
+        url("https://optim.tildacdn.com/tild6231-3438-4662-a465-393537363035/-/format/webp/cart2.png.webp") center / cover no-repeat;
+      color: #fff8ff;
+      border: 3px solid rgba(255, 231, 255, 0.68);
+      display: grid;
+      place-items: center;
+      padding: 18px;
+    }
+
+    .back-inner {
+      width: 100%;
+      height: 100%;
+      border: 2px solid rgba(255, 232, 255, 0.55);
+      border-radius: 20px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      text-align: center;
+      padding: 24px 18px 44px;
+      background:
+        linear-gradient(180deg, rgba(32, 10, 38, 0.18), rgba(32, 10, 38, 0.42));
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+
+    .back-copy {
+      max-width: 220px;
+    }
+
+    .back-title {
+      font-size: 22px;
+      font-weight: 700;
+      margin-top: 0;
+      margin-bottom: 12px;
+    }
+
+    .front {
+      transform: rotateY(180deg);
+      background:
+        linear-gradient(180deg, rgba(255, 250, 255, 0.14), rgba(247, 231, 251, 0.18)),
+        url("https://optim.tildacdn.com/tild6332-6233-4737-b066-376337393031/-/format/webp/cart_fon2.png.webp") center / cover no-repeat;
+      border: 3px solid rgba(127, 36, 146, 0.16);
+      color: var(--ink);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .front-top {
+      padding: 16px 18px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent-dark);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.56), rgba(255, 255, 255, 0.08));
+    }
+
+    .front-illustration {
+      flex: 1;
+      display: grid;
+      place-items: center;
+      padding: 10px 24px;
+      text-align: center;
+      border-top: 1px solid rgba(90, 32, 103, 0.08);
+      border-bottom: 1px solid rgba(90, 32, 103, 0.08);
+      background:
+        radial-gradient(circle at 50% 30%, rgba(173, 66, 193, 0.16), transparent 34%),
+        linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.02));
+    }
+
+    .front-copy {
+      width: min(100%, 250px);
+      min-height: 220px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 30px 22px 24px;
+      text-shadow: 0 2px 10px rgba(255, 255, 255, 0.28);
+    }
+
+    .front-emoji {
+      font-size: clamp(72px, 10vw, 108px);
+      margin-bottom: 12px;
+      transform: translateY(-64px);
+    }
+
+    .front-phrase {
+      font-size: 18px;
+      line-height: 1.35;
+      font-weight: 700;
+    }
+
+    .front-bottom {
+      margin-top: -78px;
+      padding: 2px 18px 34px;
+      text-align: center;
+      font-size: 14px;
+      color: rgba(31, 42, 46, 0.74);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.54));
+    }
+
+    .button-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      z-index: 1;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 14px 20px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .primary {
+      background: linear-gradient(135deg, var(--accent), #d56ae8);
+      color: white;
+      box-shadow: 0 12px 24px rgba(173, 66, 193, 0.28);
+    }
+
+    .secondary {
+      background: rgba(255, 255, 255, 0.7);
+      color: var(--ink);
+      border: 1px solid rgba(127, 36, 146, 0.16);
+    }
+
+    .hint {
+      text-align: center;
+      max-width: 320px;
+      font-size: 15px;
+      line-height: 1.45;
+      color: rgba(31, 42, 46, 0.78);
+      z-index: 1;
+    }
+
+    .result {
+      min-height: 520px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .result h2 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    .reading {
+      display: grid;
+      gap: 14px;
+    }
+
+    .reading-block {
+      padding: 16px 18px;
+      background: rgba(255, 247, 255, 0.84);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+    }
+
+    .reading-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent-dark);
+      margin-bottom: 8px;
+    }
+
+    .reading-text {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.5;
+    }
+
+    .meters {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: auto;
+    }
+
+    .meter-card {
+      padding: 14px 16px;
+      background: rgba(255, 248, 255, 0.82);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+    }
+
+    .meter-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 14px;
+      margin-bottom: 6px;
+    }
+
+    .meter-track {
+      width: 100%;
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(31, 42, 46, 0.09);
+      overflow: hidden;
+    }
+
+    .meter-fill {
+      height: 100%;
+      border-radius: inherit;
+      background: var(--meter-gradient, linear-gradient(90deg, #d56ae8, #ad42c1));
+      transition: width 0.55s ease;
+    }
+
+    .muted {
+      color: rgba(31, 42, 46, 0.68);
+    }
+
+    @media (max-width: 860px) {
+      body {
+        align-items: flex-start;
+        padding: 14px;
+        background-attachment: scroll;
+      }
+
+      .game {
+        border-radius: 24px;
+      }
+
+      .hero {
+        padding: 22px 18px 10px;
+      }
+
+      .hero-logo {
+        width: min(560px, 100%);
+        margin-bottom: 14px;
+      }
+
+      .eyebrow {
+        font-size: 12px;
+        letter-spacing: 0.06em;
+      }
+
+      h1 {
+        margin: 12px 0 8px;
+        font-size: clamp(28px, 8vw, 42px);
+        line-height: 1;
+      }
+
+      .subtitle {
+        font-size: 16px;
+        line-height: 1.42;
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+        gap: 18px;
+        padding: 12px 18px 24px;
+      }
+
+      .meters {
+        grid-template-columns: 1fr;
+      }
+
+      .deck-zone,
+      .result {
+        padding: 18px;
+        border-radius: 22px;
+      }
+
+      .deck-zone,
+      .result {
+        min-height: auto;
+      }
+
+      .card-wrap {
+        width: min(300px, 88vw);
+      }
+
+      .back-inner {
+        padding: 20px 16px 34px;
+      }
+
+      .back-copy {
+        max-width: 200px;
+      }
+
+      .back-title {
+        font-size: 20px;
+      }
+
+      .front-top {
+        padding: 14px 16px 10px;
+        font-size: 12px;
+      }
+
+      .front-illustration {
+        padding: 10px 16px;
+      }
+
+      .front-copy {
+        width: min(100%, 220px);
+        min-height: 190px;
+        padding: 20px 16px 16px;
+      }
+
+      .front-emoji {
+        font-size: clamp(64px, 16vw, 92px);
+        transform: translateY(-48px);
+      }
+
+      .front-phrase {
+        font-size: 16px;
+      }
+
+      .front-bottom {
+        margin-top: -62px;
+        padding: 4px 16px 24px;
+        font-size: 13px;
+      }
+
+      .button-row {
+        width: 100%;
+        gap: 10px;
+      }
+
+      button {
+        width: 100%;
+        padding: 13px 16px;
+        font-size: 15px;
+      }
+
+      .hint {
+        max-width: none;
+        font-size: 14px;
+      }
+
+      .result {
+        gap: 14px;
+      }
+
+      .result h2 {
+        font-size: 24px;
+      }
+
+      .reading {
+        gap: 12px;
+      }
+
+      .reading-block {
+        padding: 14px 15px;
+      }
+
+      .reading-text {
+        font-size: 15px;
+        line-height: 1.42;
+      }
+
+      .meter-card {
+        padding: 12px 13px;
+      }
+
+      .meter-label {
+        font-size: 13px;
+      }
+    }
+
+    @media (max-width: 520px) {
+      body {
+        padding: 10px;
+      }
+
+      .game {
+        border-radius: 20px;
+      }
+
+      .hero {
+        padding: 18px 14px 8px;
+      }
+
+      .hero-logo {
+        width: min(100%, 460px);
+        margin-bottom: 10px;
+      }
+
+      .eyebrow {
+        padding: 5px 10px;
+        font-size: 11px;
+      }
+
+      h1 {
+        font-size: clamp(24px, 9vw, 34px);
+      }
+
+      .subtitle {
+        font-size: 14px;
+      }
+
+      .layout {
+        gap: 14px;
+        padding: 10px 12px 18px;
+      }
+
+      .deck-zone,
+      .result {
+        padding: 14px;
+        border-radius: 18px;
+      }
+
+      .deck-zone {
+        gap: 14px;
+      }
+
+      .card-wrap {
+        width: min(270px, 88vw);
+      }
+
+      .back-inner {
+        padding: 16px 12px 28px;
+      }
+
+      .back-copy {
+        max-width: 176px;
+        font-size: 13px;
+      }
+
+      .back-title {
+        font-size: 18px;
+        margin-bottom: 8px;
+      }
+
+      .front-top {
+        padding: 12px 12px 8px;
+        font-size: 11px;
+      }
+
+      .front-illustration {
+        padding: 6px 10px;
+      }
+
+      .front-copy {
+        width: min(100%, 190px);
+        min-height: 160px;
+        padding: 16px 12px 12px;
+      }
+
+      .front-emoji {
+        font-size: clamp(56px, 18vw, 78px);
+        margin-bottom: 6px;
+        transform: translateY(-42px);
+      }
+
+      .front-phrase {
+        font-size: 15px;
+        line-height: 1.25;
+      }
+
+      .front-bottom {
+        margin-top: -52px;
+        padding: 2px 12px 20px;
+        font-size: 12px;
+      }
+
+      .result h2 {
+        font-size: 21px;
+      }
+
+      .reading-label {
+        font-size: 11px;
+      }
+
+      .reading-text {
+        font-size: 14px;
+      }
+
+      .meter-card {
+        padding: 10px 11px;
+        border-radius: 16px;
+      }
+
+      .meter-label {
+        gap: 8px;
+        font-size: 12px;
+      }
+
+      .meter-track {
+        height: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="game">
+    <section class="hero">
+      <a class="hero-link" href="https://osnovaprof.ru" target="_blank" rel="noopener noreferrer">
+        <img
+          class="hero-logo"
+          src="https://optim.tildacdn.com/tild6433-3761-4337-b062-363565366637/-/format/webp/taro_logo2.png.webp"
+          alt="Таро проектировщика"
+        >
+      </a>
+      <div class="eyebrow">Мистический координационный центр</div>
+      <h1>Таро проектировщика</h1>
+      <p class="subtitle">
+        Нажмите на карту и узнайте, что сегодня ждёт ваш проект:
+        архитектурное озарение, внезапный узел по конструктиву, проверка на прочность по инженерке
+        или сюрприз в генплане и пожарной безопасности.
+      </p>
+    </section>
+
+    <section class="layout">
+      <div class="deck-zone">
+        <div class="card-wrap">
+          <div class="card" id="tarotCard" aria-live="polite">
+            <div class="face back">
+              <div class="back-inner">
+                <div class="back-copy">
+                  <div class="back-title">Колода проектировщика</div>
+                  <div>Тяни карту и узнай, где сегодня прячется согласование</div>
+                </div>
+              </div>
+            </div>
+            <div class="face front">
+              <div class="front-top">
+                <span id="cardArcana">Раздел проекта</span>
+                <span id="cardNumber">№ 00</span>
+              </div>
+              <div class="front-illustration">
+                <div class="front-copy">
+                  <div class="front-emoji" id="cardEmoji">📐</div>
+                  <div class="front-phrase" id="cardName">Аркан проектировщика</div>
+                </div>
+              </div>
+              <div class="front-bottom" id="cardTagline">Покажет, где сегодня ждёт прорыв, правка или великое согласование.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="button-row">
+          <button class="primary" id="drawButton">Вытянуть карту</button>
+          <button class="secondary" id="resetButton">Перемешать заново</button>
+        </div>
+
+        <p class="hint">
+          Игра шуточная: проектных норм не заменяет, но настроение команде поднимает.
+        </p>
+      </div>
+
+      <aside class="result">
+        <div>
+          <h2 id="resultTitle">Прогноз пока скрыт</h2>
+          <p class="muted" id="resultIntro">
+            Вытащите карту, чтобы получить предсказание по разделам проекта, срокам и согласованиям.
+          </p>
+        </div>
+
+        <div class="reading">
+          <div class="reading-block">
+            <div class="reading-label">Знак свыше</div>
+            <p class="reading-text" id="resultMeaning">
+              Сегодня проектная вселенная молчит. Видимо, ждёт первого клика.
+            </p>
+          </div>
+
+          <div class="reading-block">
+            <div class="reading-label">Совет мастера</div>
+            <p class="reading-text" id="resultAdvice">
+              Пока совет один: сначала проверьте исходники, потом верьте в магию.
+            </p>
+          </div>
+
+          <div class="reading-block">
+            <div class="reading-label">Симптом дня</div>
+            <p class="reading-text" id="resultSymptom">
+              Диагностика не началась. Пациент: комплект документации.
+            </p>
+          </div>
+        </div>
+
+        <div class="meters">
+          <div class="meter-card" style="--meter-gradient: linear-gradient(90deg, #d56ae8, #ad42c1);">
+            <div class="meter-label">
+              <span>Шанс на согласование</span>
+              <strong id="heatValue">0%</strong>
+            </div>
+            <div class="meter-track">
+              <div class="meter-fill" id="heatMeter" style="width: 0%;"></div>
+            </div>
+          </div>
+          <div class="meter-card" style="--meter-gradient: linear-gradient(90deg, #ff8aa6, #ff5f6d);">
+            <div class="meter-label">
+              <span>Риск срочной правки</span>
+              <strong id="draftValue">0%</strong>
+            </div>
+            <div class="meter-track">
+              <div class="meter-fill" id="draftMeter" style="width: 0%;"></div>
+            </div>
+          </div>
+          <div class="meter-card" style="--meter-gradient: linear-gradient(90deg, #4bc0ff, #2b77ff);">
+            <div class="meter-label">
+              <span>Смежная координация</span>
+              <strong id="coordinationValue">0%</strong>
+            </div>
+            <div class="meter-track">
+              <div class="meter-fill" id="coordinationMeter" style="width: 0%;"></div>
+            </div>
+          </div>
+          <div class="meter-card" style="--meter-gradient: linear-gradient(90deg, #7de7c7, #1fbf8f);">
+            <div class="meter-label">
+              <span>Проектное озарение</span>
+              <strong id="insightValue">0%</strong>
+            </div>
+            <div class="meter-track">
+              <div class="meter-fill" id="insightMeter" style="width: 0%;"></div>
+            </div>
+          </div>
+          <div class="meter-card" style="--meter-gradient: linear-gradient(90deg, #ffbe5c, #ff7a18);">
+            <div class="meter-label">
+              <span>Давление дедлайна</span>
+              <strong id="deadlineValue">0%</strong>
+            </div>
+            <div class="meter-track">
+              <div class="meter-fill" id="deadlineMeter" style="width: 0%;"></div>
+            </div>
+          </div>
+          <div class="meter-card" style="--meter-gradient: linear-gradient(90deg, #7a74ff, #4338ca);">
+            <div class="meter-label">
+              <span>Риск замечаний экспертизы</span>
+              <strong id="expertiseValue">0%</strong>
+            </div>
+            <div class="meter-track">
+              <div class="meter-fill" id="expertiseMeter" style="width: 0%;"></div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const cards = [
+      {
+        arcana: "Архитектура",
+        number: "№ 01",
+        name: "Фасадная Комета",
+        emoji: "🏛️",
+        tagline: "Пролетает по концепции и оставляет после себя стройный ритм окон.",
+        title: "Карта дня: Фасадная Комета",
+        meaning: "Сегодня архитектурная идея наконец складывается в убедительный образ. Всё, что вчера спорило между собой, вдруг начинает работать как единый фасад.",
+        advice: "Сверьте пропорции и не ленитесь показать логику решения. Уверенная композиция согласуется быстрее красивой импровизации.",
+        symptom: "Стойкое желание выровнять даже те окна, которых в проекте пока нет.",
+        heat: 90,
+        draft: 16
+      },
+      {
+        arcana: "Архитектура",
+        number: "№ 02",
+        name: "Корона Планировочной Сетки",
+        emoji: "📏",
+        tagline: "Любит порядок в осях и не прощает случайных стен.",
+        title: "Карта дня: Корона Планировочной Сетки",
+        meaning: "День хорош для планировок, где каждая функция знает своё место. Пространство подчиняется логике, а не хаотичным пожеланиям последней минуты.",
+        advice: "Не украшайте план лишним. Сильная сетка работает тише, но убедительнее любого эффектного комментария.",
+        symptom: "Внутренний дискомфорт при виде дверного проёма, не привязанного к оси.",
+        heat: 86,
+        draft: 22
+      },
+      {
+        arcana: "Архитектура",
+        number: "№ 03",
+        name: "Лестничный Оракул",
+        emoji: "🪜",
+        tagline: "Знает, как провести человека наверх, не запутав его по дороге.",
+        title: "Карта дня: Лестничный Оракул",
+        meaning: "Сегодня всё, что связано с движением людей, складывается удачно. Маршруты становятся понятнее, а вопросы по эвакуации и удобству перестают конфликтовать.",
+        advice: "Проверьте лестничные клетки и переходы свежим взглядом. Хорошая логистика убеждает даже без длинных пояснений.",
+        symptom: "Желание мысленно пройти весь объект от входа до кровли и поправить пару дверей по пути.",
+        heat: 83,
+        draft: 24
+      },
+      {
+        arcana: "Архитектура",
+        number: "№ 04",
+        name: "Хранитель Разреза",
+        emoji: "✂️",
+        tagline: "Разрезает туман недосказанности и показывает, как объект живёт в высоту.",
+        title: "Карта дня: Хранитель Разреза",
+        meaning: "Сегодня важное скрыто не на плане, а в сечении. Там, где все видят только линии, вы увидите логику объёмов и конфликтов.",
+        advice: "Откройте разрезы раньше, чем отправите комплект. Вертикаль любит мстить тем, кто слишком доверяет только планам.",
+        symptom: "Появляется соблазн объяснять любую идею словами «в разрезе всё станет ясно».",
+        heat: 79,
+        draft: 31
+      },
+      {
+        arcana: "Архитектура",
+        number: "№ 05",
+        name: "Зеркало Экспликации",
+        emoji: "🪞",
+        tagline: "Показывает, где помещение названо честно, а где прячется компромисс.",
+        title: "Карта дня: Зеркало Экспликации",
+        meaning: "Сегодня таблицы и ведомости внезапно становятся главным источником истины. Экспликация вскроет неточности раньше, чем это сделает экспертиза.",
+        advice: "Сверьте наименования и площади. Иногда одна аккуратная строка спасает больше времени, чем целое совещание.",
+        symptom: "Неожиданное желание перечитать таблицу помещений как детектив.",
+        heat: 75,
+        draft: 34
+      },
+      {
+        arcana: "Архитектура",
+        number: "№ 06",
+        name: "Девятка Узлов Примыкания",
+        emoji: "🔲",
+        tagline: "Напоминает, что красота заканчивается там, где не продуман стык.",
+        title: "Карта дня: Девятка Узлов Примыкания",
+        meaning: "День потребует внимания к деталям, которые обычно считают второстепенными. Именно узлы сегодня определят, будет ли решение выглядеть зрелым.",
+        advice: "Смотрите на сопряжения раньше, чем на рендер. Узел, продуманный вовремя, убирает половину будущих вопросов.",
+        symptom: "Всё вокруг внезапно начинает делиться на правильные и подозрительные примыкания.",
+        heat: 81,
+        draft: 28
+      },
+      {
+        arcana: "Архитектура",
+        number: "№ 07",
+        name: "Тень Авторского Надзора",
+        emoji: "👁️",
+        tagline: "Стоит за спиной и тихо спрашивает, точно ли это так и было задумано.",
+        title: "Карта дня: Тень Авторского Надзора",
+        meaning: "Сегодня замысел важнее компромисса. Карта напоминает: если решение не выдерживает реализации, значит, его надо усиливать уже сейчас.",
+        advice: "Фиксируйте принципиальные вещи. Будущая стройка любит те команды, которые заранее умеют говорить «так и было задумано».",
+        symptom: "Странное чувство, что каждая правка уже смотрит на вас со стройплощадки.",
+        heat: 72,
+        draft: 39
+      },
+      {
+        arcana: "Конструктивные решения",
+        number: "№ 08",
+        name: "Молот Координации",
+        emoji: "🔨",
+        tagline: "Выравнивает схемы, пока все остальные ещё спорят, кто виноват.",
+        title: "Карта дня: Молот Координации",
+        meaning: "Сегодня конструктив станет тем разделом, который неожиданно соберёт комплект в единое целое. Силовое решение поможет успокоить соседние разделы.",
+        advice: "Проверьте пересечения и опоры. Там, где есть ясная несущая логика, разговор сразу становится предметным.",
+        symptom: "Рука тянется мысленно простучать каждый спорный узел на прочность.",
+        heat: 88,
+        draft: 18
+      },
+      {
+        arcana: "Конструктивные решения",
+        number: "№ 09",
+        name: "Башня Арматурного Каркаса",
+        emoji: "🏗️",
+        tagline: "Не любит приблизительных решений и мгновенно вычисляет слабое место.",
+        title: "Карта дня: Башня Арматурного Каркаса",
+        meaning: "День требует собранности и строгой логики. Если что-то не работает в расчёте, оно проявится рано и громко, но это даже к лучшему.",
+        advice: "Не затягивайте с проверкой ключевых сечений и армирования. Конструктив уважает тех, кто замечает риск до выпуска.",
+        symptom: "Подозрение, что даже чашка кофе сегодня нуждается в расчёте несущей способности.",
+        heat: 64,
+        draft: 58
+      },
+      {
+        arcana: "Конструктивные решения",
+        number: "№ 10",
+        name: "Паж Узла Опирания",
+        emoji: "🧩",
+        tagline: "Приносит маленькую деталь, без которой рушится весь разговор о надёжности.",
+        title: "Карта дня: Паж Узла Опирания",
+        meaning: "Сегодня именно локальный узел решит судьбу большого решения. Внимание к одной опоре или одной передаче усилия даст больше эффекта, чем спор о концепции.",
+        advice: "Смотрите в корень нагрузки. Чем раньше вы раскроете узел, тем меньше сюрпризов прилетит от смежников.",
+        symptom: "Навязчивое желание увеличить фрагмент до масштаба, где уже видно душу конструкции.",
+        heat: 80,
+        draft: 27
+      },
+      {
+        arcana: "Конструктивные решения",
+        number: "№ 11",
+        name: "Семёрка Монолитных Осей",
+        emoji: "🧱",
+        tagline: "Любит, когда геометрия не плавает вместе с настроением команды.",
+        title: "Карта дня: Семёрка Монолитных Осей",
+        meaning: "Сегодня всё требует жёсткой привязки. Если удастся удержать систему осей и уровней, комплект пройдёт день без лишней турбулентности.",
+        advice: "Не соглашайтесь на плавающие допущения. Конструктив особенно щедр к тем, кто фиксирует базовые координаты.",
+        symptom: "Мысленное желание привязать к осям даже случайно поставленный ноутбук.",
+        heat: 78,
+        draft: 29
+      },
+      {
+        arcana: "Конструктивные решения",
+        number: "№ 12",
+        name: "Колесница Нагрузок",
+        emoji: "⚖️",
+        tagline: "Возит усилия по проекту и не терпит вольного обращения с коэффициентами.",
+        title: "Карта дня: Колесница Нагрузок",
+        meaning: "День про расчёты, сочетания и аккуратную инженерную дисциплину. Если сегодня навести порядок в нагрузках, завтрашние вопросы станут заметно тише.",
+        advice: "Проверьте исходные предпосылки, а не только итог. Ошибка в начале расчёта любит маскироваться под точность в конце.",
+        symptom: "Странная тревога при каждом слове «примерно».",
+        heat: 74,
+        draft: 36
+      },
+      {
+        arcana: "Конструктивные решения",
+        number: "№ 13",
+        name: "Хранитель Консоли",
+        emoji: "📐",
+        tagline: "Стоит на краю и напоминает, что смелость должна быть просчитана.",
+        title: "Карта дня: Хранитель Консоли",
+        meaning: "Сегодня на первый план выйдут решения на грани допустимого. Но если вы держите логику и расчёт, смелая схема может стать сильным ходом.",
+        advice: "Не бойтесь нестандартного, если оно подтверждено цифрами. Консоль любит дерзость, когда та подкреплена дисциплиной.",
+        symptom: "Появляется желание измерять пролёты взглядом, как будто в вас проснулся внутренний расчётчик.",
+        heat: 77,
+        draft: 33
+      },
+      {
+        arcana: "Конструктивные решения",
+        number: "№ 14",
+        name: "Суд Деформационного Шва",
+        emoji: "⚡",
+        tagline: "Разделяет вовремя и спасает от больших проблем позже.",
+        title: "Карта дня: Суд Деформационного Шва",
+        meaning: "День подсказывает, что лучше грамотно разделить систему, чем потом героически бороться с последствиями. Шов сегодня символ зрелого инженерного решения.",
+        advice: "Смотрите на температурные и осадочные сценарии заранее. Правильно поставленная граница часто стоит меньше, чем одна поздняя переделка.",
+        symptom: "Желание мысленно делить на блоки даже разговоры в рабочем чате.",
+        heat: 71,
+        draft: 42
+      },
+      {
+        arcana: "Отопление и вентиляция",
+        number: "№ 15",
+        name: "Жрица Приточной Камеры",
+        emoji: "🌬️",
+        tagline: "Знает, где взять свежий воздух и как не превратить проект в турбулентность.",
+        title: "Карта дня: Жрица Приточной Камеры",
+        meaning: "Сегодня в инженерных решениях появится нужная ясность. Всё, что вчера казалось душным совещанием, можно превратить в рабочую систему с понятной логикой.",
+        advice: "Открывайте не только схему, но и исходные данные. Приток любит точность и быстро мстит тем, кто верит в воздух из ниоткуда.",
+        symptom: "Неожиданная тяга рисовать воздуховоды красивее, чем требует задача.",
+        heat: 85,
+        draft: 23
+      },
+      {
+        arcana: "Отопление и вентиляция",
+        number: "№ 16",
+        name: "Колесо Балансировки",
+        emoji: "♻️",
+        tagline: "Возвращает системе равновесие и проектировщику чувство контроля.",
+        title: "Карта дня: Колесо Балансировки",
+        meaning: "День цикличен, но полезен. Вернутся старые вопросы, однако именно сейчас у вас есть шанс закрыть их корректной увязкой и спокойной аргументацией.",
+        advice: "Проверьте расходы, потери и ветви, прежде чем снова писать длинное письмо. Правильная балансировка сокращает и гидравлику, и переписку.",
+        symptom: "Периодические приступы фразы «это надо просто нормально увязать».",
+        heat: 82,
+        draft: 26
+      },
+      {
+        arcana: "Отопление и вентиляция",
+        number: "№ 17",
+        name: "Владыка Радиатора",
+        emoji: "🔥",
+        tagline: "Греет не только помещения, но и уверенность в проектных решениях.",
+        title: "Карта дня: Владыка Радиатора",
+        meaning: "Сегодня день на стороне систем отопления и тех, кто умеет говорить о комфорте без лишнего пафоса. Тёплый контур проекта будет складываться в вашу пользу.",
+        advice: "Если обсуждение зашло в тупик, вернитесь к расчётной логике и режимам. Радиатор уважает аргументы, а не громкость.",
+        symptom: "Желание проверить каждый прибор так, будто он лично участвует в согласовании.",
+        heat: 91,
+        draft: 15
+      },
+      {
+        arcana: "Отопление и вентиляция",
+        number: "№ 18",
+        name: "Двойка Дымоудаления",
+        emoji: "💨",
+        tagline: "Напоминает, что спокойствие приходит только после правильно рассчитанного сценария.",
+        title: "Карта дня: Двойка Дымоудаления",
+        meaning: "Сегодня придётся думать не о штатной красоте, а об особых режимах. Но именно в таких задачах проявляется настоящий инженерный класс.",
+        advice: "Не смешивайте спокойный режим эксплуатации и аварийный сценарий в одну мысль. Чёткое разделение спасает и схему, и репутацию.",
+        symptom: "Повышенная подозрительность к словам «да там и так сработает».",
+        heat: 69,
+        draft: 44
+      },
+      {
+        arcana: "Отопление и вентиляция",
+        number: "№ 19",
+        name: "Семёрка Воздуховодов",
+        emoji: "🌀",
+        tagline: "Напоминает, что трасса умеет мстить за каждую лишнюю попытку срезать угол.",
+        title: "Карта дня: Семёрка Воздуховодов",
+        meaning: "День принесёт много мелких пересечений и вопрос «а можно ли здесь пройти». Всё решаемо, если вести трассу не эмоциями, а инженерной памятью.",
+        advice: "Смотрите на трассы целиком. Воздуховод всегда знает, где вы пытались сделать слишком удобно только для себя.",
+        symptom: "Стремление прокладывать маршрут даже по кухне как через техэтаж.",
+        heat: 73,
+        draft: 37
+      },
+      {
+        arcana: "Отопление и вентиляция",
+        number: "№ 20",
+        name: "Термостат Сдержанности",
+        emoji: "🌡️",
+        tagline: "Учит не перегревать ни систему, ни обсуждение в переписке.",
+        title: "Карта дня: Термостат Сдержанности",
+        meaning: "Сегодня лучшее решение не самое мощное, а самое точное. Регулирование и спокойствие принесут больше результата, чем инженерный максимализм.",
+        advice: "Не пытайтесь закрыть все риски завышенными параметрами. Иногда хорошая настройка сильнее лишнего запаса.",
+        symptom: "Резкие внутренние колебания при виде предложения «сделаем с запасом на всякий случай».",
+        heat: 76,
+        draft: 30
+      },
+      {
+        arcana: "Отопление и вентиляция",
+        number: "№ 21",
+        name: "Отшельник Шумоглушителя",
+        emoji: "🔇",
+        tagline: "Умеет делать тише и оборудование, и ненужные споры вокруг него.",
+        title: "Карта дня: Отшельник Шумоглушителя",
+        meaning: "Хороший день для тех решений, которые не бросаются в глаза, но радикально повышают качество проекта. Тишина сегодня работает на вашу пользу.",
+        advice: "Проверьте акустику и локальные тонкие места. Иногда именно незаметная доработка делает систему взрослой.",
+        symptom: "Желание выйти из общего чата и доделать всё в идеальной инженерной тишине.",
+        heat: 79,
+        draft: 25
+      },
+      {
+        arcana: "Водоснабжение и канализация",
+        number: "№ 22",
+        name: "Река Стояков",
+        emoji: "💧",
+        tagline: "Течёт через этажи и помнит, где вы забыли про шахту.",
+        title: "Карта дня: Река Стояков",
+        meaning: "Сегодня вертикальные связи окажутся важнее локальных удобств. Стояки подскажут, как собрать систему честно и без болезненных компромиссов.",
+        advice: "Сначала посмотрите на общую трассу, потом на приборы. ВК любит системность и наказывает за поэтажную амнезию.",
+        symptom: "Странное ощущение, что все разговоры тоже пора увязать по стоякам.",
+        heat: 84,
+        draft: 23
+      },
+      {
+        arcana: "Водоснабжение и канализация",
+        number: "№ 23",
+        name: "Паж Сантехкабины",
+        emoji: "🚿",
+        tagline: "Приносит бытовую правду туда, где проект слишком долго жил теорией.",
+        title: "Карта дня: Паж Сантехкабины",
+        meaning: "День про прикладную логику и реальные сценарии использования. Всё, что слишком абстрактно, сегодня быстро разобьётся о практику монтажа и эксплуатации.",
+        advice: "Проверьте габариты, доступы и присоединения. Сантехника редко прощает красивые, но неудобные решения.",
+        symptom: "Навязчивая мысль, что половина вопросов мира решается одним нормально поставленным ревизионным люком.",
+        heat: 77,
+        draft: 28
+      },
+      {
+        arcana: "Водоснабжение и канализация",
+        number: "№ 24",
+        name: "Колодец Уклонов",
+        emoji: "🕳️",
+        tagline: "Тихо напоминает, что вода не читает пояснительные и идёт только по физике.",
+        title: "Карта дня: Колодец Уклонов",
+        meaning: "Сегодня любая неточность в отметках и уклонах быстро станет видимой. Зато аккуратная проверка даст редкое чувство инженерной завершённости.",
+        advice: "Не доверяйте ощущениям. ВК особенно уважает тех, кто смотрит в числа, а не в надежду.",
+        symptom: "Желание вычислять уклон даже у тротуара по дороге за кофе.",
+        heat: 72,
+        draft: 41
+      },
+      {
+        arcana: "Водоснабжение и канализация",
+        number: "№ 25",
+        name: "Башня Ревизий",
+        emoji: "🧰",
+        tagline: "Напоминает, что обслуживаемость не рождается сама собой.",
+        title: "Карта дня: Башня Ревизий",
+        meaning: "День требует думать не только о том, как провести систему, но и о том, как её потом будут обслуживать. Ревизия сегодня символ профессиональной предусмотрительности.",
+        advice: "Оставьте доступ там, где он нужен, даже если ради этого придётся поспорить. Будущее обслуживание всегда помнит тех, кто думал о нём заранее.",
+        symptom: "Повышенная чувствительность к словам «потом как-нибудь доберутся».",
+        heat: 70,
+        draft: 46
+      },
+      {
+        arcana: "Водоснабжение и канализация",
+        number: "№ 26",
+        name: "Девятка Насосной Группы",
+        emoji: "🚰",
+        tagline: "Держит давление и не любит, когда на неё рассчитывают без проверки.",
+        title: "Карта дня: Девятка Насосной Группы",
+        meaning: "Сегодня активные решения будут в центре внимания. Система готова работать на вас, если вы понимаете, в каком режиме и зачем.",
+        advice: "Проверьте режимы работы и резервирование. Насосы любят дисциплину и с недоверием относятся к приблизительным рассуждениям.",
+        symptom: "Желание измерять уверенность окружающих в метрах напора.",
+        heat: 81,
+        draft: 27
+      },
+      {
+        arcana: "Водоснабжение и канализация",
+        number: "№ 27",
+        name: "Страж Канализационного Выпуска",
+        emoji: "🛡️",
+        tagline: "Стоит на последней границе и защищает проект от неловких последствий.",
+        title: "Карта дня: Страж Канализационного Выпуска",
+        meaning: "Карта подсказывает: финальная точка системы сегодня важнее, чем кажется. Если правильно решить выпуск, весь остальной комплект вздохнёт спокойнее.",
+        advice: "Сверьте отметки, трассу и присоединение к сети. Выпуск любит точность и умеет сурово наказывать за самоуверенность.",
+        symptom: "Появляется странное уважение ко всем, кто заранее думает, куда именно всё должно уйти.",
+        heat: 78,
+        draft: 35
+      },
+      {
+        arcana: "Электроснабжение",
+        number: "№ 28",
+        name: "Император Щитовой",
+        emoji: "⚡",
+        tagline: "Правит линиями, автоматами и настроением всего объекта.",
+        title: "Карта дня: Император Щитовой",
+        meaning: "Сегодня у вас есть шанс привести электрическую часть к образцовому порядку. Там, где была каша из линий и групп, можно быстро навести структуру.",
+        advice: "Проверьте баланс по щитам и подписи групп. Сильная щитовая любит аккуратность почти так же, как мощность.",
+        symptom: "Желание рассаживать коллег по категориям надёжности.",
+        heat: 89,
+        draft: 19
+      },
+      {
+        arcana: "Электроснабжение",
+        number: "№ 29",
+        name: "Звезда Кабельного Лотка",
+        emoji: "✨",
+        tagline: "Светит над трассами и показывает путь без хаотичных обходов.",
+        title: "Карта дня: Звезда Кабельного Лотка",
+        meaning: "Хороший день для трассировки и наведения порядка в кабельных маршрутах. Всё, что раньше выглядело как компромисс, может стать чистой системой.",
+        advice: "Смотрите на путь кабеля целиком, а не фрагментами. Лоток любит дальновидность и терпеть не может внезапные повороты ради минутной выгоды.",
+        symptom: "Желание мысленно прокладывать кабель даже через витрину магазина.",
+        heat: 83,
+        draft: 24
+      },
+      {
+        arcana: "Электроснабжение",
+        number: "№ 30",
+        name: "Двойка Резервного Ввода",
+        emoji: "🔌",
+        tagline: "Напоминает, что настоящий покой начинается там, где есть план Б.",
+        title: "Карта дня: Двойка Резервного Ввода",
+        meaning: "Сегодня надёжность будет цениться выше эффектности. Всё, что вы предусмотрите как резерв, избавит проект от нервных сценариев завтра.",
+        advice: "Проверьте источники, переключения и логику резервирования. Хороший резерв не кричит о себе, но в нужный момент становится героем.",
+        symptom: "Необъяснимое желание дублировать даже список задач на день.",
+        heat: 80,
+        draft: 26
+      },
+      {
+        arcana: "Электроснабжение",
+        number: "№ 31",
+        name: "Отшельник Заземления",
+        emoji: "🌍",
+        tagline: "Скромен, но именно он удерживает систему от лишнего драматизма.",
+        title: "Карта дня: Отшельник Заземления",
+        meaning: "Сегодня незаметные защитные решения окажутся важнее ярких. Карта говорит о фундаментальной инженерной ответственности и тихой надёжности.",
+        advice: "Не оставляйте защитные мероприятия на потом. В электрике именно базовые вещи потом вспоминают первыми.",
+        symptom: "Странное уважение к каждому символу PE, который встречается на пути.",
+        heat: 78,
+        draft: 29
+      },
+      {
+        arcana: "Электроснабжение",
+        number: "№ 32",
+        name: "Семёрка Автоматов",
+        emoji: "🔋",
+        tagline: "Любит, когда селективность не является декоративным понятием.",
+        title: "Карта дня: Семёрка Автоматов",
+        meaning: "День потребует точной настройки и внимательного распределения ответственности между аппаратами. Система будет надёжной только там, где логика защиты продумана до конца.",
+        advice: "Сверьте аппараты и уставки на смысл, а не только на привычку. Автоматы быстро распознают формальный подход.",
+        symptom: "Появляется желание спрашивать у каждого решения, точно ли оно селективно по жизни.",
+        heat: 74,
+        draft: 38
+      },
+      {
+        arcana: "Электроснабжение",
+        number: "№ 33",
+        name: "Башня Потерянной Фазы",
+        emoji: "💡",
+        tagline: "Вспыхивает именно в тот момент, когда кто-то слишком уверенно сказал «там всё просто».",
+        title: "Карта дня: Башня Потерянной Фазы",
+        meaning: "Сегодня возможны внезапные нестыковки и мелкие электрические драматические эффекты. Но карта полезна: она позволяет поймать ошибку, пока та ещё на бумаге.",
+        advice: "Не доверяйте схеме, пока не перепроверите цепочку целиком. Потерянная фаза всегда любит появляться там, где спешили.",
+        symptom: "Лёгкое недоверие ко всему, что подписано слишком красиво и слишком быстро.",
+        heat: 58,
+        draft: 63
+      },
+      {
+        arcana: "Слаботочные сети",
+        number: "№ 34",
+        name: "Жрица СКС",
+        emoji: "🌐",
+        tagline: "Хранит тайну стабильной сети и знает цену каждой розетке данных.",
+        title: "Карта дня: Жрица СКС",
+        meaning: "Сегодня порядок в информационной инфраструктуре принесёт неожиданное спокойствие всему проекту. То, что обычно считают второстепенным, внезапно станет критически важным.",
+        advice: "Проверьте структуру портов, маршрутов и логики подключения. СКС любит ясность и не выносит случайных решений под столом.",
+        symptom: "Желание группировать даже мысли по патч-панелям.",
+        heat: 82,
+        draft: 24
+      },
+      {
+        arcana: "Слаботочные сети",
+        number: "№ 35",
+        name: "Паж Видеонаблюдения",
+        emoji: "📹",
+        tagline: "Приносит обзор туда, где раньше были только слепые зоны и надежда.",
+        title: "Карта дня: Паж Видеонаблюдения",
+        meaning: "День подсказывает, что сегодня многое прояснится, если посмотреть на задачу под правильным углом. Камеры здесь как метафора точного обзора и своевременного контроля.",
+        advice: "Проверьте зоны покрытия и реальные сценарии наблюдения. Камера без логики обзора не сильнее декоративного квадрата.",
+        symptom: "Навязчивое желание оценивать переговорную по углам обзора.",
+        heat: 76,
+        draft: 31
+      },
+      {
+        arcana: "Слаботочные сети",
+        number: "№ 36",
+        name: "Колесо Контроля Доступа",
+        emoji: "🚪",
+        tagline: "Открывает только тем, кто заранее продумал логику доступа.",
+        title: "Карта дня: Колесо Контроля Доступа",
+        meaning: "Сегодня вопросы маршрутов, прав и сценариев станут особенно заметны. Там, где есть чёткая система, даже сложные процессы выглядят естественно.",
+        advice: "Согласуйте матрицу доступа до того, как спор уйдёт в детали оборудования. Правильный режим входа начинается не с кнопки, а с логики.",
+        symptom: "Стремление мысленно выдавать уровни доступа всем участникам совещания.",
+        heat: 79,
+        draft: 28
+      },
+      {
+        arcana: "Слаботочные сети",
+        number: "№ 37",
+        name: "Глашатай Оповещения",
+        emoji: "📢",
+        tagline: "Знает, что важное сообщение должно дойти вовремя и без искажений.",
+        title: "Карта дня: Глашатай Оповещения",
+        meaning: "Карта говорит о важности понятной коммуникации. Сегодня выигрывают те решения, которые не просто существуют, а уверенно доносят сигнал до адресата.",
+        advice: "Проверьте зоны покрытия, сценарии и слышимость своей логики. Оповещение бесполезно, если его никто не воспринимает с первого раза.",
+        symptom: "Хочется формулировать замечания так, будто они должны прозвучать по громкой связи.",
+        heat: 74,
+        draft: 37
+      },
+      {
+        arcana: "Слаботочные сети",
+        number: "№ 38",
+        name: "Тройка Серверной Тишины",
+        emoji: "🗄️",
+        tagline: "Любит стабильность, аккуратные шкафы и отсутствие ненужной паники.",
+        title: "Карта дня: Тройка Серверной Тишины",
+        meaning: "Сегодня сила будет в спокойной инфраструктурной работе. Чем меньше хаоса в основах, тем надёжнее ведёт себя всё сверху.",
+        advice: "Проверьте шкафы, питание, охлаждение и реальные условия размещения. Слаботочка любит не только схемы, но и уважение к среде.",
+        symptom: "Повышенная раздражительность к словосочетанию «поставим где-нибудь рядом».",
+        heat: 81,
+        draft: 22
+      },
+      {
+        arcana: "Слаботочные сети",
+        number: "№ 39",
+        name: "Тень Слаботочного Стояка",
+        emoji: "📡",
+        tagline: "Появляется внезапно и спрашивает, как всё это вообще должно пройти по этажам.",
+        title: "Карта дня: Тень Слаботочного Стояка",
+        meaning: "Сегодня вертикальная координация вновь напомнит о себе. Если стояк не продуман, вся изящная сеть быстро потеряет благородство.",
+        advice: "Проверьте шахты, резервы и проходы по этажам. Стояк любит тех, кто смотрит на проект не в одном масштабе.",
+        symptom: "Желание считать слабый ток очень даже сильным источником проблем.",
+        heat: 68,
+        draft: 47
+      },
+      {
+        arcana: "Генплан",
+        number: "№ 40",
+        name: "Колесница Красных Линий",
+        emoji: "🛣️",
+        tagline: "Катится строго по правилам и не любит забытые ограничения участка.",
+        title: "Карта дня: Колесница Красных Линий",
+        meaning: "День требует уважения к границам, ограничениям и городской реальности. Всё, что учитывает контекст участка, будет двигаться заметно увереннее.",
+        advice: "Сверьте ограничения и привязки до того, как увлечётесь внутренней логикой объекта. Генплан всегда шире одного здания.",
+        symptom: "Подозрение, что даже в блокноте стоит сначала проверить отступы.",
+        heat: 84,
+        draft: 21
+      },
+      {
+        arcana: "Генплан",
+        number: "№ 41",
+        name: "Хранитель Вертикальной Планировки",
+        emoji: "⛰️",
+        tagline: "Видит рельеф лучше всех и мстит за неуважение к отметкам.",
+        title: "Карта дня: Хранитель Вертикальной Планировки",
+        meaning: "Сегодня вся правда проекта может оказаться в отметках, уклонах и сопряжении территории. Хорошо выстроенная вертикальная логика спасёт от многих поздних недоразумений.",
+        advice: "Смотрите на землю как на систему, а не фон. Рельеф очень быстро показывает, где в проекте осталось самообманное упрощение.",
+        symptom: "Желание оценивать каждый бордюр как символ инженерной честности.",
+        heat: 79,
+        draft: 32
+      },
+      {
+        arcana: "Генплан",
+        number: "№ 42",
+        name: "Паж Ливневой Сети",
+        emoji: "🌧️",
+        tagline: "Приходит с первым дождём и сразу делает видимыми все недочёты.",
+        title: "Карта дня: Паж Ливневой Сети",
+        meaning: "Карта напоминает о сценариях, которые часто вспоминают слишком поздно. Сегодня у вас хороший шанс вовремя поймать территориальную гидравлику.",
+        advice: "Проверьте водоотведение и работу покрытия в дождевом режиме. Ливнёвка всегда ценит предусмотрительность.",
+        symptom: "Лёгкая тревога при виде любой красивой, но подозрительно плоской площадки.",
+        heat: 73,
+        draft: 40
+      },
+      {
+        arcana: "Генплан",
+        number: "№ 43",
+        name: "Звезда Посадочного Плана",
+        emoji: "🌳",
+        tagline: "Светит над участком и помогает расставить всё по местам без хаоса.",
+        title: "Карта дня: Звезда Посадочного Плана",
+        meaning: "Сегодня удачны решения, где объект и территория начинают работать как одно целое. Композиция участка внезапно станет понятнее и убедительнее.",
+        advice: "Проверьте посадку, проезды и окружение одновременно. Генплан выигрывает там, где видят не точку, а сцену.",
+        symptom: "Желание переставлять даже комнатные растения по принципам посадочного плана.",
+        heat: 87,
+        draft: 18
+      },
+      {
+        arcana: "Генплан",
+        number: "№ 44",
+        name: "Суд Подъездных Путей",
+        emoji: "🚗",
+        tagline: "Сурово оценивает, точно ли к объекту можно нормально подъехать и уехать.",
+        title: "Карта дня: Суд Подъездных Путей",
+        meaning: "День поставит на первый план вопросы доступа, логистики и реального использования территории. Красивый план без нормального подъезда сегодня не пройдёт.",
+        advice: "Пройдитесь по сценарию транспорта, а не только по геометрии. Подъездные пути любят правду жизни больше, чем аккуратные штриховки.",
+        symptom: "Внезапное желание мысленно разворачивать пожарную машину на каждом перекрёстке.",
+        heat: 69,
+        draft: 45
+      },
+      {
+        arcana: "Пожарная безопасность",
+        number: "№ 45",
+        name: "Меч Эвакуационного Пути",
+        emoji: "🚪",
+        tagline: "Разрезает сомнения и требует, чтобы выход оставался выходом всегда.",
+        title: "Карта дня: Меч Эвакуационного Пути",
+        meaning: "Сегодня решения нужно оценивать не по удобству обсуждения, а по безопасности людей. Карта напоминает о прямой и суровой логике путей эвакуации.",
+        advice: "Проверьте длины, направления и реальные сценарии выхода. Пожарная логика не признаёт компромиссов ради красоты.",
+        symptom: "Непреодолимое желание оценивать каждый коридор с точки зрения «а если прямо сейчас».",
+        heat: 86,
+        draft: 21
+      },
+      {
+        arcana: "Пожарная безопасность",
+        number: "№ 46",
+        name: "Страж Противодымной Защиты",
+        emoji: "🧯",
+        tagline: "Оберегает ясность маршрута там, где всё вокруг готово уйти в дым и хаос.",
+        title: "Карта дня: Страж Противодымной Защиты",
+        meaning: "Карта про специальные режимы, которые нельзя делать формально. Сегодня именно продуманная противодымная логика принесёт редкое чувство профессиональной чистоты.",
+        advice: "Смотрите на систему целиком: шахты, клапаны, подпор, алгоритмы. Противодымка не любит половинчатых решений.",
+        symptom: "Повышенная требовательность ко всему, что называется «аварийным режимом».",
+        heat: 78,
+        draft: 34
+      },
+      {
+        arcana: "Пожарная безопасность",
+        number: "№ 47",
+        name: "Паж Огнестойкости",
+        emoji: "🧱",
+        tagline: "Приносит вопрос, который все откладывали: а сколько это действительно должно держать?",
+        title: "Карта дня: Паж Огнестойкости",
+        meaning: "Сегодня огнестойкость выйдет из тени приложений и станет предметом разговора. Чем точнее вы увяжете требования с реальными конструкциями, тем спокойнее будет проект.",
+        advice: "Проверьте пределы, узлы и подтверждение решений. Огнестойкость любит доказательства, а не привычные формулировки.",
+        symptom: "Желание читать марки материалов с тем же вниманием, что и важные письма.",
+        heat: 75,
+        draft: 37
+      },
+      {
+        arcana: "Пожарная безопасность",
+        number: "№ 48",
+        name: "Колесо Категорий Помещений",
+        emoji: "⚠️",
+        tagline: "Крутится быстро и превращает невнимательность в длинный список последствий.",
+        title: "Карта дня: Колесо Категорий Помещений",
+        meaning: "День предупреждает: базовые классификации сегодня критичны. Если категория определена неверно, дальше по цепочке начнёт рассыпаться слишком многое.",
+        advice: "Сверьте исходные предпосылки и реальные процессы в помещении. Категория любит не угадывание, а внимательное понимание функции.",
+        symptom: "Странное желание классифицировать всё вокруг по степени потенциальной опасности.",
+        heat: 67,
+        draft: 52
+      },
+      {
+        arcana: "Пожарная безопасность",
+        number: "№ 49",
+        name: "Башня Спринклерного Узла",
+        emoji: "🚿",
+        tagline: "Напоминает, что автоматическая защита ценит не обещания, а работоспособную схему.",
+        title: "Карта дня: Башня Спринклерного Узла",
+        meaning: "Сегодня в фокусе будут системы активной защиты и вопросы реальной работоспособности. Карта жёсткая, но полезная: она вытаскивает на свет слабые места до выпуска.",
+        advice: "Проверьте узел управления, зоны и логику запуска. Спринклерная система любит точность и дисциплину на каждом участке.",
+        symptom: "Внутреннее напряжение от любой фразы в духе «подключим потом по месту».",
+        heat: 63,
+        draft: 57
+      },
+      {
+        arcana: "Пожарная безопасность",
+        number: "№ 50",
+        name: "Звезда Пожарного Расчёта",
+        emoji: "🚒",
+        tagline: "Светит тем, кто умеет подтверждать безопасность не только словами, но и цифрами.",
+        title: "Карта дня: Звезда Пожарного Расчёта",
+        meaning: "Хороший день для доказательной части проекта. Всё, что можно обосновать расчётом, сегодня приобретёт особую убедительность.",
+        advice: "Покажите логику в числах и сценариях. Там, где спор не снимается словами, расчёт производит почти мистический эффект.",
+        symptom: "Редкое внутреннее спокойствие при виде корректно сходящегося пожарного сценария.",
+        heat: 92,
+        draft: 14
+      }
+    ];
+
+    let drawPile = [];
+
+    const tarotCard = document.getElementById("tarotCard");
+    const drawButton = document.getElementById("drawButton");
+    const resetButton = document.getElementById("resetButton");
+
+    const cardArcana = document.getElementById("cardArcana");
+    const cardNumber = document.getElementById("cardNumber");
+    const cardEmoji = document.getElementById("cardEmoji");
+    const cardName = document.getElementById("cardName");
+    const cardTagline = document.getElementById("cardTagline");
+
+    const resultTitle = document.getElementById("resultTitle");
+    const resultIntro = document.getElementById("resultIntro");
+    const resultMeaning = document.getElementById("resultMeaning");
+    const resultAdvice = document.getElementById("resultAdvice");
+    const resultSymptom = document.getElementById("resultSymptom");
+    const heatMeter = document.getElementById("heatMeter");
+    const draftMeter = document.getElementById("draftMeter");
+    const coordinationMeter = document.getElementById("coordinationMeter");
+    const insightMeter = document.getElementById("insightMeter");
+    const deadlineMeter = document.getElementById("deadlineMeter");
+    const expertiseMeter = document.getElementById("expertiseMeter");
+    const heatValue = document.getElementById("heatValue");
+    const draftValue = document.getElementById("draftValue");
+    const coordinationValue = document.getElementById("coordinationValue");
+    const insightValue = document.getElementById("insightValue");
+    const deadlineValue = document.getElementById("deadlineValue");
+    const expertiseValue = document.getElementById("expertiseValue");
+
+    const sectionMetricProfiles = {
+      "Архитектура": { coordination: 58, insight: 82, deadline: 28, expertise: 49 },
+      "Конструктивные решения": { coordination: 79, insight: 38, deadline: 72, expertise: 71 },
+      "Отопление и вентиляция": { coordination: 68, insight: 54, deadline: 58, expertise: 61 },
+      "Водоснабжение и канализация": { coordination: 63, insight: 44, deadline: 53, expertise: 67 },
+      "Электроснабжение": { coordination: 73, insight: 48, deadline: 66, expertise: 58 },
+      "Слаботочные сети": { coordination: 74, insight: 67, deadline: 39, expertise: 46 },
+      "Генплан": { coordination: 52, insight: 71, deadline: 61, expertise: 61 },
+      "Пожарная безопасность": { coordination: 84, insight: 34, deadline: 79, expertise: 88 }
+    };
+
+    function clampPercent(value, min = 0, max = 100) {
+      return Math.max(min, Math.min(max, Math.round(value)));
+    }
+
+    // Дополнительные шкалы вычисляются по разделу и номеру карты, чтобы профили заметно различались.
+    function deriveExtraMetrics(card) {
+      const profile = sectionMetricProfiles[card.arcana] || sectionMetricProfiles["Архитектура"];
+      const number = Number(card.number.replace(/\D/g, ""));
+      const swingA = ((number * 11 + card.name.length * 7) % 51) - 25;
+      const swingB = ((number * 17 + card.title.length * 3) % 49) - 24;
+      const swingC = ((number * 19 + card.symptom.length) % 57) - 28;
+      const swingD = ((number * 23 + card.tagline.length * 4) % 53) - 26;
+
+      return {
+        coordination: clampPercent(profile.coordination + swingA + (card.heat - card.draft) / 6, 4, 98),
+        insight: clampPercent(profile.insight + swingB + (card.heat - 50) / 4, 4, 98),
+        deadline: clampPercent(profile.deadline + swingC + (card.draft - card.heat) / 5, 4, 98),
+        expertise: clampPercent(profile.expertise + swingD + (card.draft + (100 - card.heat)) / 7, 4, 98)
+      };
+    }
+
+    function setMetric(meter, valueNode, value) {
+      meter.style.width = value + "%";
+      valueNode.textContent = value + "%";
+    }
+
+    function resetMetrics() {
+      setMetric(heatMeter, heatValue, 0);
+      setMetric(draftMeter, draftValue, 0);
+      setMetric(coordinationMeter, coordinationValue, 0);
+      setMetric(insightMeter, insightValue, 0);
+      setMetric(deadlineMeter, deadlineValue, 0);
+      setMetric(expertiseMeter, expertiseValue, 0);
+    }
+
+    function refillDrawPile() {
+      drawPile = [...cards];
+      drawButton.disabled = false;
+
+      for (let i = drawPile.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [drawPile[i], drawPile[j]] = [drawPile[j], drawPile[i]];
+      }
+    }
+
+    function drawCard() {
+      if (drawPile.length === 0) {
+        resultTitle.textContent = "Колода пройдена";
+        resultIntro.textContent = "Все карты этой колоды уже вытянуты. Нажмите «Перемешать заново», чтобы начать новый круг.";
+        resultMeaning.textContent = "На сегодня мистическая проектная экспертиза завершена. Вы увидели всю колоду.";
+        resultAdvice.textContent = "Если нужен новый заход, перемешайте колоду и начните ещё один цикл.";
+        resultSymptom.textContent = "Симптом дня: гордое чувство, что вы пережили все разделы проекта.";
+        drawButton.disabled = true;
+        return;
+      }
+
+      const picked = drawPile.pop();
+      const extraMetrics = deriveExtraMetrics(picked);
+
+      cardArcana.textContent = picked.arcana;
+      cardNumber.textContent = picked.number;
+      cardEmoji.textContent = picked.emoji;
+      cardName.textContent = picked.name;
+      cardTagline.textContent = picked.tagline;
+
+      resultTitle.textContent = picked.title;
+      resultIntro.textContent = `Раздел: ${picked.arcana}.`;
+      resultMeaning.textContent = picked.meaning;
+      resultAdvice.textContent = picked.advice;
+      resultSymptom.textContent = picked.symptom;
+      setMetric(heatMeter, heatValue, picked.heat);
+      setMetric(draftMeter, draftValue, picked.draft);
+      setMetric(coordinationMeter, coordinationValue, extraMetrics.coordination);
+      setMetric(insightMeter, insightValue, extraMetrics.insight);
+      setMetric(deadlineMeter, deadlineValue, extraMetrics.deadline);
+      setMetric(expertiseMeter, expertiseValue, extraMetrics.expertise);
+
+      if (drawPile.length === 0) {
+        drawButton.disabled = true;
+      }
+
+      tarotCard.classList.add("revealed");
+    }
+
+    function resetCard() {
+      tarotCard.classList.remove("revealed");
+      resultTitle.textContent = "Прогноз пока скрыт";
+      resultIntro.textContent = drawPile.length === 0
+        ? "Колода пройдена. Перемешайте её, чтобы начать новый круг."
+        : "Вытащите карту, чтобы получить предсказание по разделам проекта, срокам и согласованиям.";
+      resultMeaning.textContent = "Сегодня проектная вселенная молчит. Видимо, ждёт первого клика.";
+      resultAdvice.textContent = "Пока совет один: сначала проверьте исходники, потом верьте в магию.";
+      resultSymptom.textContent = "Диагностика не началась. Пациент: комплект документации.";
+      resetMetrics();
+    }
+
+    function reshuffleDeck() {
+      refillDrawPile();
+      resetCard();
+    }
+
+    refillDrawPile();
+    drawButton.addEventListener("click", drawCard);
+    resetButton.addEventListener("click", reshuffleDeck);
+    tarotCard.addEventListener("click", () => {
+      if (tarotCard.classList.contains("revealed")) {
+        resetCard();
+      } else {
+        drawCard();
+      }
+    });
+  </script>
+</body>
+</html>
