@@ -1556,6 +1556,31 @@
       setMetric(expertiseMeter, expertiseValue, 0);
     }
 
+    function getDocumentHeight() {
+      return Math.max(
+        document.body.scrollHeight,
+        document.body.offsetHeight,
+        document.documentElement.scrollHeight,
+        document.documentElement.offsetHeight,
+        document.documentElement.clientHeight
+      );
+    }
+
+    function notifyParentHeight() {
+      if (window.parent === window) {
+        return;
+      }
+
+      window.parent.postMessage(
+        {
+          source: "osnova-taro",
+          type: "resize",
+          height: getDocumentHeight()
+        },
+        "*"
+      );
+    }
+
     function refillDrawPile() {
       drawPile = [...cards];
       drawButton.disabled = false;
@@ -1622,6 +1647,29 @@
       resetCard();
     }
 
+    window.addEventListener("message", (event) => {
+      if (event.data && event.data.type === "osnova-taro-request-height") {
+        notifyParentHeight();
+      }
+    });
+
+    if ("ResizeObserver" in window) {
+      const resizeObserver = new ResizeObserver(() => {
+        notifyParentHeight();
+      });
+
+      resizeObserver.observe(document.documentElement);
+      resizeObserver.observe(document.body);
+    } else {
+      window.addEventListener("resize", notifyParentHeight);
+    }
+
+    window.addEventListener("load", () => {
+      notifyParentHeight();
+      window.setTimeout(notifyParentHeight, 250);
+      window.setTimeout(notifyParentHeight, 1000);
+    });
+
     refillDrawPile();
     drawButton.addEventListener("click", drawCard);
     resetButton.addEventListener("click", reshuffleDeck);
@@ -1632,6 +1680,8 @@
         drawCard();
       }
     });
+
+    notifyParentHeight();
   </script>
 </body>
 </html>
