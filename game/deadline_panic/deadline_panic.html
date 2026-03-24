@@ -1813,6 +1813,27 @@
     setMusicLabel("готова");
     updateHud();
     loop();
+
+    function postEmbedHeight() {
+      if (window.parent === window) {
+        return;
+      }
+      window.parent.postMessage({
+        type: "deadline-panic-resize",
+        height: Math.max(
+          document.documentElement.scrollHeight,
+          document.body.scrollHeight
+        )
+      }, "*");
+    }
+
+    window.addEventListener("load", postEmbedHeight);
+    window.addEventListener("resize", postEmbedHeight);
+
+    if (typeof ResizeObserver === "function") {
+      const embedResizeObserver = new ResizeObserver(() => postEmbedHeight());
+      embedResizeObserver.observe(document.body);
+    }
   </script>
 </body>
 </html>
