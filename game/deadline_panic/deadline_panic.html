@@ -1,1839 +1,1672 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Deadline Panic: проектировщик против всех</title>
-  <style>
-    :root {
-      --bg: #0d1021;
-      --panel: #19203b;
-      --panel-light: #253158;
-      --ink: #f6e7b5;
-      --accent: #ff8c42;
-      --danger: #ff4d6d;
-      --good: #53d8a7;
-      --sky: #121735;
-      --grid: rgba(255, 255, 255, 0.06);
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Deadline Panic — Проектировщик против всех</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1021;--panel:#19203b;--ink:#f6e7b5;--accent:#ff8c42;
+  --danger:#ff4d6d;--good:#53d8a7;--sky:#121735;--border:#44518a;
+  --title:#ffd76f;--sub:#c6d0ff;
+}
+body{
+  background:linear-gradient(180deg,#0c0f22,#161b34);
+  color:var(--ink);font-family:"Courier New",monospace;
+  min-height:100vh;display:flex;justify-content:center;
+  align-items:flex-start;padding:12px;
+}
+.shell{
+  width:min(1100px,100%);border:4px solid var(--border);
+  background:#0a0e1f;box-shadow:0 0 0 4px #0a0e1f,0 20px 50px rgba(0,0,0,.5);
+}
+.topbar{
+  padding:14px 16px 8px;border-bottom:4px solid var(--border);
+  background:linear-gradient(180deg,#20284b,#141a32);
+}
+.title-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.logo{width:clamp(120px,18vw,180px);height:auto;image-rendering:pixelated}
+h1{
+  margin:0;font-size:clamp(22px,3.5vw,36px);line-height:1;
+  text-transform:uppercase;letter-spacing:.06em;
+  color:var(--title);text-shadow:3px 3px 0 #9d5d21;
+}
+.subtitle{color:var(--sub);font-size:13px;line-height:1.5}
+.layout{
+  display:grid;grid-template-columns:minmax(0,760px) minmax(240px,1fr);
+  gap:12px;padding:12px;
+}
+.frame{
+  border:4px solid var(--border);background:var(--sky);
+  position:relative;
+}
+canvas{
+  display:block;width:100%;height:auto;
+  image-rendering:pixelated;background:#0d1430;
+  transition:transform .05s;
+}
+.sidebar{display:flex;flex-direction:column;gap:10px}
+.panel{
+  border:4px solid var(--border);
+  background:linear-gradient(180deg,#1b2344,#111731);padding:10px;
+}
+.panel h2{margin:0 0 8px;font-size:14px;color:var(--title);text-transform:uppercase}
+.stat-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px}
+.bar{width:100%;height:14px;background:#0c1125;border:2px solid #42508b;margin-bottom:8px}
+.bar-fill{height:100%;width:0;transition:width .12s linear}
+.stress-fill{background:linear-gradient(90deg,#ffb347,#ff4d6d)}
+.boss-fill{background:linear-gradient(90deg,#7cf0ae,#3bd2ff)}
+.controls{font-size:12px;line-height:1.7;color:var(--sub)}
+.buff-row{display:flex;gap:6px;flex-wrap:wrap;min-height:22px;margin-top:4px}
+.buff-badge{
+  font-size:11px;padding:2px 6px;
+  background:rgba(255,255,255,.1);border:1px solid var(--accent);
+  color:var(--accent);
+}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+button{
+  border:0;background:var(--accent);color:#1b1122;
+  font:inherit;font-weight:700;font-size:12px;
+  padding:8px 12px;cursor:pointer;
+  box-shadow:0 3px 0 #a4531f;text-transform:uppercase;
+}
+button:active{transform:translateY(2px);box-shadow:0 1px 0 #a4531f}
+.btn-sec{background:var(--good);box-shadow:0 3px 0 #33936e}
+.scores-list{font-size:12px;line-height:1.8;color:var(--sub)}
+.scores-list .hi{color:var(--title)}
+.footer{padding:8px 14px 14px;color:var(--sub);font-size:13px;line-height:1.5}
 
-    * {
-      box-sizing: border-box;
-    }
+/* mobile joystick */
+#mobile-ui{
+  display:none;position:absolute;inset:0;pointer-events:none;
+  touch-action:none;
+}
+#lstick-zone{
+  position:absolute;bottom:16px;left:16px;width:110px;height:110px;
+  border-radius:50%;background:rgba(255,255,255,.08);
+  border:2px solid rgba(255,255,255,.18);pointer-events:all;
+}
+#lstick-handle{
+  position:absolute;width:44px;height:44px;border-radius:50%;
+  background:rgba(255,140,66,.7);border:2px solid #ff8c42;
+  top:50%;left:50%;transform:translate(-50%,-50%);
+  pointer-events:none;transition:none;
+}
+#rpad{
+  position:absolute;bottom:12px;right:12px;
+  width:150px;height:110px;pointer-events:all;
+}
+.rbtn{
+  position:absolute;width:36px;height:36px;border-radius:50%;
+  background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.25);
+  color:#fff;font-size:16px;display:flex;align-items:center;
+  justify-content:center;cursor:pointer;pointer-events:all;user-select:none;
+  -webkit-user-select:none;
+}
+#btn-fire{width:48px;height:48px;background:rgba(255,140,66,.5);
+  border-color:#ff8c42;font-size:20px;
+  bottom:31px;right:51px;}
+#btn-up   {bottom:80px;right:52px}
+#btn-down {bottom:4px;right:52px}
+#btn-left {bottom:40px;right:92px}
+#btn-right{bottom:40px;right:10px}
+#btn-tea  {bottom:80px;right:4px;background:rgba(83,216,167,.4);border-color:#53d8a7;font-size:14px}
 
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background:
-        linear-gradient(180deg, #0c0f22, #161b34),
-        repeating-linear-gradient(90deg, transparent 0 31px, rgba(255,255,255,0.03) 31px 32px),
-        repeating-linear-gradient(0deg, transparent 0 31px, rgba(255,255,255,0.03) 31px 32px);
-      color: var(--ink);
-      font-family: "Courier New", monospace;
-      display: flex;
-      justify-content: center;
-      padding: 20px;
-    }
+/* stress visual effects applied via JS */
+.stress-orange{box-shadow:inset 0 0 0 3px #ff8c42}
+.stress-red{box-shadow:inset 0 0 30px rgba(255,50,50,.6)}
 
-    .shell {
-      width: min(1100px, 100%);
-      border: 4px solid #44518a;
-      background: #0a0e1f;
-      box-shadow: 0 0 0 4px #0a0e1f, 0 20px 50px rgba(0, 0, 0, 0.45);
-    }
-
-    .topbar {
-      padding: 16px 18px 8px;
-      border-bottom: 4px solid #44518a;
-      background: linear-gradient(180deg, #20284b, #141a32);
-    }
-
-    .title-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 8px;
-    }
-
-    .title-link {
-      display: inline-flex;
-      align-items: center;
-      flex: 0 0 auto;
-    }
-
-    .title-logo {
-      width: clamp(160px, 24vw, 224px);
-      height: auto;
-      image-rendering: pixelated;
-      flex: 0 0 auto;
-    }
-
-    h1 {
-      margin: 0;
-      font-size: clamp(26px, 4vw, 40px);
-      line-height: 1;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: #ffd76f;
-      text-shadow: 3px 3px 0 #9d5d21;
-    }
-
-    .subtitle {
-      margin: 0;
-      color: #c6d0ff;
-      line-height: 1.5;
-      font-size: 14px;
-    }
-
-    .layout {
-      display: grid;
-      grid-template-columns: minmax(0, 760px) minmax(260px, 1fr);
-      gap: 14px;
-      padding: 14px;
-    }
-
-    .frame {
-      border: 4px solid #44518a;
-      background: var(--sky);
-      padding: 10px;
-    }
-
-    canvas {
-      display: block;
-      width: 100%;
-      height: auto;
-      image-rendering: pixelated;
-      background: #0d1430;
-    }
-
-    .sidebar {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .panel {
-      border: 4px solid #44518a;
-      background: linear-gradient(180deg, #1b2344, #111731);
-      padding: 12px;
-    }
-
-    .panel h2 {
-      margin: 0 0 10px;
-      font-size: 16px;
-      color: #ffd76f;
-      text-transform: uppercase;
-    }
-
-    .stats {
-      display: grid;
-      gap: 10px;
-      font-size: 14px;
-    }
-
-    .stat-line {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    .bar {
-      width: 100%;
-      height: 16px;
-      background: #0c1125;
-      border: 2px solid #42508b;
-      margin-top: 6px;
-    }
-
-    .bar-fill {
-      height: 100%;
-      width: 0;
-      transition: width 0.16s linear;
-    }
-
-    .stress {
-      background: linear-gradient(90deg, #ffb347, #ff4d6d);
-    }
-
-    .boss {
-      background: linear-gradient(90deg, #7cf0ae, #3bd2ff);
-    }
-
-    .controls,
-    .quotes {
-      font-size: 13px;
-      line-height: 1.55;
-      color: #dbe1ff;
-    }
-
-    .quotes {
-      max-height: 160px;
-      overflow: auto;
-    }
-
-    .quote {
-      padding: 8px;
-      margin-bottom: 8px;
-      background: rgba(255, 255, 255, 0.05);
-      border-left: 4px solid var(--accent);
-    }
-
-    .actions {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    button {
-      border: 0;
-      background: #ff8c42;
-      color: #1b1122;
-      font: inherit;
-      font-weight: 700;
-      padding: 10px 14px;
-      min-height: 46px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      box-shadow: 0 4px 0 #a4531f;
-      text-transform: uppercase;
-    }
-
-    #startBtn,
-    #restartBtn {
-      min-width: 132px;
-    }
-
-    button:active {
-      transform: translateY(2px);
-      box-shadow: 0 2px 0 #a4531f;
-    }
-
-    .secondary {
-      background: #71dcb0;
-      box-shadow: 0 4px 0 #33936e;
-    }
-
-    .footer-note {
-      padding: 8px 14px 16px;
-      color: #aeb9ef;
-      font-size: 17px;
-      line-height: 1.6;
-      font-weight: 700;
-    }
-
-    @media (max-width: 960px) {
-      .layout {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
+@media(max-width:760px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{flex-direction:row;flex-wrap:wrap}
+  .panel{flex:1 1 200px}
+  #mobile-ui{display:block}
+}
+@media(pointer:coarse){
+  #mobile-ui{display:block}
+}
+</style>
 </head>
 <body>
-  <main class="shell">
-    <header class="topbar">
-      <div class="title-row">
-        <a class="title-link" href="https://osnovaprof.ru" target="_blank" rel="noopener noreferrer" aria-label="Основы">
-          <img class="title-logo" src="https://optim.tildacdn.com/tild6437-3635-4231-b230-316162666466/-/format/webp/logo_8bit.png.webp" alt="Основы">
-        </a>
+<main class="shell">
+  <header class="topbar">
+    <div class="title-row">
+      <a href="https://osnovaprof.ru" target="_blank" rel="noopener">
+        <img class="logo" src="https://optim.tildacdn.com/tild6437-3635-4231-b230-316162666466/-/format/webp/logo_8bit.png.webp" alt="Основа">
+      </a>
+      <div>
         <h1>Deadline Panic</h1>
+        <p class="subtitle">16-бит аркада: проектировщик отбивается чертежами от всех, кто мешает работать</p>
       </div>
-      <p class="subtitle">
-        16-битная аркада про проектировщика, который отбивается от задач, правок, коллизий и великого заказчика.
-        Продержитесь до босса, наберите максимум очков и заработайте право спокойно выпить чай.
-      </p>
-    </header>
-
-    <section class="layout">
-      <div class="frame">
-        <canvas id="game" width="720" height="480" aria-label="Игровое поле"></canvas>
-      </div>
-
-      <aside class="sidebar">
-        <div class="panel">
-          <h2>Статус проекта</h2>
-          <div class="stats">
-            <div>
-              <div class="stat-line"><span>Очки</span><strong id="scoreValue">0</strong></div>
-            </div>
-            <div>
-              <div class="stat-line"><span>Волна</span><strong id="waveValue">1</strong></div>
-            </div>
-            <div>
-              <div class="stat-line"><span>Нагрузка</span><strong id="stressValue">0 / 100</strong></div>
-              <div class="bar"><div class="bar-fill stress" id="stressBar"></div></div>
-            </div>
-            <div>
-              <div class="stat-line"><span>Жизнь босса</span><strong id="bossValue">0%</strong></div>
-              <div class="bar"><div class="bar-fill boss" id="bossBar"></div></div>
-            </div>
-            <div>
-              <div class="stat-line"><span>Режим</span><strong id="stateValue">Ожидание</strong></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="panel">
-          <h2>Управление</h2>
-          <div class="controls">
-            <div>`WASD` или стрелки: двигаться</div>
-            <div>`Пробел`: метнуть чертеж во врага</div>
-            <div>`Q`: срочно выпить чай и снять нагрузку</div>
-            <div>`Enter`: старт или рестарт</div>
-            <div>`M`: включить или выключить музыку</div>
-          </div>
-          <div class="actions" style="margin-top: 12px;">
-            <button id="startBtn">Старт</button>
-            <button class="secondary" id="pauseBtn">Пауза</button>
-            <button class="secondary" id="restartBtn">Рестарт</button>
-          </div>
-          <div class="controls" style="margin-top: 12px;">
-            <div>Музыка: <strong id="musicState">готова</strong></div>
-          </div>
-          <div class="actions" style="margin-top: 12px;">
-            <button class="secondary" id="musicBtn">Музыка ON/OFF</button>
-          </div>
-        </div>
-
-      </aside>
-    </section>
-
-    <div class="footer-note">
-      Победа: дойти до главного заказчика и закидать всех чертежами. Поражение: вас завалили чертежами, письмами и правками, и вы сидите за компьютером до ночи.
     </div>
-  </main>
+  </header>
 
-  <script>
-    const canvas = document.getElementById("game");
-    const ctx = canvas.getContext("2d");
+  <section class="layout">
+    <div class="frame" id="gameFrame">
+      <canvas id="game" width="720" height="480"></canvas>
+      <div id="mobile-ui">
+        <div id="lstick-zone"><div id="lstick-handle"></div></div>
+        <div id="rpad">
+          <div class="rbtn" id="btn-up">↑</div>
+          <div class="rbtn" id="btn-down">↓</div>
+          <div class="rbtn" id="btn-left">←</div>
+          <div class="rbtn" id="btn-right">→</div>
+          <div class="rbtn" id="btn-fire">📋</div>
+          <div class="rbtn" id="btn-tea">☕</div>
+        </div>
+      </div>
+    </div>
 
-    const scoreValue = document.getElementById("scoreValue");
-    const waveValue = document.getElementById("waveValue");
-    const stressValue = document.getElementById("stressValue");
-    const stressBar = document.getElementById("stressBar");
-    const bossValue = document.getElementById("bossValue");
-    const bossBar = document.getElementById("bossBar");
-    const stateValue = document.getElementById("stateValue");
-    const quoteList = document.getElementById("quoteList");
-    const startBtn = document.getElementById("startBtn");
-    const pauseBtn = document.getElementById("pauseBtn");
-    const restartBtn = document.getElementById("restartBtn");
-    const musicBtn = document.getElementById("musicBtn");
-    const musicState = document.getElementById("musicState");
+    <aside class="sidebar">
+      <div class="panel">
+        <h2>Статус проекта</h2>
+        <div class="stat-row"><span>Очки</span><strong id="uScore">0</strong></div>
+        <div class="stat-row"><span>Волна</span><strong id="uWave">1</strong></div>
+        <div class="stat-row"><span>Режим</span><strong id="uState">Ожидание</strong></div>
+        <div class="stat-row"><span>Нагрузка</span><strong id="uStressVal">0%</strong></div>
+        <div class="bar"><div class="bar-fill stress-fill" id="uStressBar"></div></div>
+        <div id="bossRow" style="display:none">
+          <div class="stat-row"><span>Жизнь босса</span><strong id="uBossVal">100%</strong></div>
+          <div class="bar"><div class="bar-fill boss-fill" id="uBossBar"></div></div>
+        </div>
+        <div style="font-size:12px;color:var(--sub);margin-top:4px">Активные бонусы:</div>
+        <div class="buff-row" id="uBuffs"></div>
+      </div>
 
-    const WIDTH = canvas.width;
-    const HEIGHT = canvas.height;
+      <div class="panel">
+        <h2>Управление</h2>
+        <div class="controls">
+          <div>WASD / ↑↓←→ — движение</div>
+          <div>Пробел — кинуть чертёж</div>
+          <div>Shift+WASD — стрелять в сторону</div>
+          <div>Q — выпить чай (−стресс)</div>
+          <div>P / Esc — пауза</div>
+          <div>M — музыка on/off</div>
+          <div>Enter — старт / рестарт</div>
+        </div>
+        <div class="actions">
+          <button id="btnStart">Старт</button>
+          <button class="btn-sec" id="btnPause">Пауза</button>
+          <button class="btn-sec" id="btnRestart">Рестарт</button>
+        </div>
+        <div class="controls" style="margin-top:8px">Музыка: <strong id="uMusic">готова</strong></div>
+        <div class="actions"><button class="btn-sec" id="btnMusic">Музыка</button></div>
+      </div>
 
-    const quotes = [
-      "Давайте не по СП",
-      "Заказчику это не понравится",
-      "Все нужно переделать",
-      "Нужно поправить все коллизии",
-      "Когда выдадите задание?",
-      "Когда будет пэдэфка?"
-    ];
+      <div class="panel">
+        <h2>Рекорды</h2>
+        <div class="scores-list" id="uScores">—</div>
+      </div>
+    </aside>
+  </section>
 
-    const enemyTypes = [
-      {
-        id: "glavspec",
-        label: "Главспец",
-        color: "#ffb347",
-        hp: 2,
-        speed: 2.2,
-        damage: 11,
-        score: 12,
-        lines: ["Когда выдадите задание?", "Срочно накинул еще задач", "Надо до вечера сделать три варианта"]
-      },
-      {
-        id: "gip",
-        label: "ГИП",
-        color: "#ff6b6b",
-        hp: 3,
-        speed: 1.8,
-        damage: 14,
-        score: 18,
-        lines: ["Все нужно переделать", "Заказчику это не понравится", "Нужно срочно внести правки"]
-      },
-      {
-        id: "smezhnik",
-        label: "Смежник",
-        color: "#6cd4ff",
-        hp: 2,
-        speed: 2.5,
-        damage: 10,
-        score: 14,
-        lines: ["Нужно поправить все коллизии", "Мы сети пересекли, но править не будем", "Пусть проектировщик подвинется"]
-      },
-      {
-        id: "customer",
-        label: "Заказчик",
-        color: "#e46bff",
-        hp: 4,
-        speed: 1.6,
-        damage: 18,
-        score: 24,
-        lines: ["Давайте не по СП", "Сделайте красиво, нормы потом", "Нам нужно совсем не так, как разрешено"]
-      }
-    ];
+  <div class="footer">
+    Победа: дойти до главного заказчика и закидать его чертежами. Поражение: вас завалили правками и вы сидите за компьютером до ночи.
+  </div>
+</main>
 
-    const bossTemplate = {
-      label: "Великий заказчик",
-      color: "#ff2d7a",
-      hp: 35,
-      speed: 1.2,
-      damage: 22,
-      score: 250,
-      lines: [
-        "Давайте не по СП",
-        "Заказчику это не понравится",
-        "Все нужно переделать",
-        "Когда будет пэдэфка?",
-        "Сделайте срочно три варианта",
-        "Это нужно еще вчера"
-      ]
-    };
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════
+const W = 720, H = 480;
+const PLAYER_SPEED = 210;
+const SHOT_SPEED   = 430;
+const SHOT_CD      = 0.22;  // seconds
+const TEA_CD       = 7;     // seconds
+const BOSS_AFTER   = 7;     // wave index (0-based)
 
-    const noteMap = {
-      C3: 130.81,
-      D3: 146.83,
-      E3: 164.81,
-      F3: 174.61,
-      G3: 196.0,
-      A3: 220.0,
-      B3: 246.94,
-      C4: 261.63,
-      D4: 293.66,
-      E4: 329.63,
-      F4: 349.23,
-      G4: 392.0,
-      A4: 440.0,
-      B4: 493.88,
-      C5: 523.25,
-      D5: 587.33,
-      E5: 659.25,
-      G5: 783.99
-    };
+// ═══════════════════════════════════════════════════════
+// DOM REFS
+// ═══════════════════════════════════════════════════════
+const canvas     = document.getElementById('game');
+const ctx        = canvas.getContext('2d');
+const frame      = document.getElementById('gameFrame');
+const uScore     = document.getElementById('uScore');
+const uWave      = document.getElementById('uWave');
+const uState     = document.getElementById('uState');
+const uStressVal = document.getElementById('uStressVal');
+const uStressBar = document.getElementById('uStressBar');
+const uBossRow   = document.getElementById('bossRow');
+const uBossVal   = document.getElementById('uBossVal');
+const uBossBar   = document.getElementById('uBossBar');
+const uBuffs     = document.getElementById('uBuffs');
+const uScores    = document.getElementById('uScores');
+const uMusic     = document.getElementById('uMusic');
 
-    const musicThemes = {
-      normal: {
-        step: 0.18,
-        lead: ["C4", "E4", "G4", "C5", "G4", "E4", "D4", "G4", "A4", "C5", "A4", "G4", "E4", "D4", "C4", null],
-        bass: ["C3", null, "G3", null, "A3", null, "F3", null, "C3", null, "G3", null, "A3", null, "G3", null]
-      },
-      boss: {
-        step: 0.15,
-        lead: ["E4", "G4", "A4", "C5", "A4", "G4", "E4", "D4", "E4", "G4", "B4", "D5", "C5", "A4", "G4", null],
-        bass: ["E3", null, "E3", null, "D3", null, "C3", null, "E3", null, "G3", null, "A3", null, "B3", null]
-      }
-    };
+// ═══════════════════════════════════════════════════════
+// AUDIO
+// ═══════════════════════════════════════════════════════
+const aud = {ctx:null,master:null,enabled:true,
+  theme:'normal',started:false,timer:null,nextTime:0,step:0};
 
-    const music = {
-      context: null,
-      master: null,
-      enabled: true,
-      started: false,
-      theme: "normal",
-      timer: null,
-      nextTime: 0,
-      stepIndex: 0
-    };
+const NOTES = {
+  C3:130.81,D3:146.83,E3:164.81,F3:174.61,G3:196,A3:220,B3:246.94,
+  C4:261.63,D4:293.66,E4:329.63,F4:349.23,G4:392,A4:440,B4:493.88,
+  C5:523.25,D5:587.33,E5:659.25,G5:783.99
+};
+const THEMES = {
+  normal:{bpm:.18,lead:['C4','E4','G4','C5','G4','E4','D4','G4','A4','C5','A4','G4','E4','D4','C4',null],
+          bass:['C3',null,'G3',null,'A3',null,'F3',null,'C3',null,'G3',null,'A3',null,'G3',null]},
+  boss:  {bpm:.14,lead:['E4','G4','A4','C5','A4','G4','E4','D4','E4','G4','B4','D5','C5','A4','G4',null],
+          bass:['E3',null,'E3',null,'D3',null,'C3',null,'E3',null,'G3',null,'A3',null,'B3',null]}
+};
 
-    const state = {
-      keys: {},
-      running: false,
-      paused: false,
-      intro: false,
-      introFrame: 0,
-      gameOver: false,
-      win: false,
-      score: 0,
-      stress: 0,
-      wave: 1,
-      defeated: 0,
-      bossSpawned: false,
-      lastSpawn: 0,
-      spawnDelay: 250,
-      teaCooldown: 0,
-      messageTimer: 0,
-      message: "Нажмите START или Enter",
-      player: null,
-      enemies: [],
-      shots: [],
-      particles: [],
-      floatingTexts: [],
-      bossShots: [],
-      boss: null
-    };
+async function audInit(){
+  if(aud.ctx) return;
+  const AC = window.AudioContext||window.webkitAudioContext;
+  if(!AC){uMusic.textContent='нет audio';aud.enabled=false;return;}
+  aud.ctx = new AC();
+  aud.master = aud.ctx.createGain();
+  aud.master.gain.value = .1;
+  aud.master.connect(aud.ctx.destination);
+  aud.nextTime = aud.ctx.currentTime + .05;
+}
+function audNote(freq,dur,type,vol,when){
+  if(!aud.ctx||!aud.master||!freq) return;
+  const o=aud.ctx.createOscillator(), g=aud.ctx.createGain();
+  o.type=type; o.frequency.setValueAtTime(freq,when);
+  g.gain.setValueAtTime(.0001,when);
+  g.gain.linearRampToValueAtTime(vol,when+.01);
+  g.gain.exponentialRampToValueAtTime(.0001,when+dur);
+  o.connect(g); g.connect(aud.master);
+  o.start(when); o.stop(when+dur+.03);
+}
+function audChunk(){
+  if(!aud.started||!aud.enabled||!aud.ctx) return;
+  const t=THEMES[aud.theme];
+  while(aud.nextTime < aud.ctx.currentTime+.4){
+    const i=aud.step%t.lead.length;
+    const when=aud.nextTime;
+    audNote(NOTES[t.lead[i]],t.bpm*.9,'square',.08,when);
+    audNote(NOTES[t.bass[i]],t.bpm*.8,'triangle',.05,when);
+    if(aud.step%4===0) audNote(90,.05,'square',.025,when);
+    aud.nextTime+=t.bpm; aud.step++;
+  }
+}
+async function audStart(){
+  if(!aud.enabled){uMusic.textContent='выкл';return;}
+  await audInit();
+  if(!aud.ctx||aud.started) return;
+  aud.started=true;
+  aud.nextTime=aud.ctx.currentTime+.05;
+  aud.timer=setInterval(audChunk,120);
+  uMusic.textContent=aud.theme==='boss'?'босс-тема':'активна';
+}
+function audStop(){
+  aud.started=false;
+  if(aud.timer){clearInterval(aud.timer);aud.timer=null;}
+  uMusic.textContent=aud.enabled?'пауза':'выкл';
+}
+function audSetTheme(t){
+  if(aud.theme===t) return;
+  aud.theme=t; aud.step=0;
+  if(aud.ctx) aud.nextTime=aud.ctx.currentTime+.05;
+  uMusic.textContent=t==='boss'?'босс-тема':'активна';
+}
+function sfxHit(){
+  if(!aud.ctx||aud.ctx.state!=='running') return;
+  const n=aud.ctx.currentTime;
+  audNote(740,.04,'square',.06,n);
+  audNote(370,.07,'square',.04,n+.02);
+}
+function sfxKill(){
+  if(!aud.ctx||aud.ctx.state!=='running') return;
+  const n=aud.ctx.currentTime;
+  [523,659,784].forEach((f,i)=>audNote(f,.12,'square',.07,n+i*.06));
+}
+function sfxTea(){
+  if(!aud.ctx||aud.ctx.state!=='running') return;
+  const n=aud.ctx.currentTime;
+  [392,494,587,784].forEach((f,i)=>audNote(f,.15,'triangle',.07,n+i*.07));
+}
+function sfxStress(){
+  if(!aud.ctx||aud.ctx.state!=='running') return;
+  const n=aud.ctx.currentTime;
+  audNote(150,.2,'sawtooth',.08,n);
+}
+function sfxPickup(){
+  if(!aud.ctx||aud.ctx.state!=='running') return;
+  const n=aud.ctx.currentTime;
+  [659,784,988].forEach((f,i)=>audNote(f,.08,'square',.06,n+i*.04));
+}
+function sfxBossEntry(){
+  if(!aud.ctx||aud.ctx.state!=='running') return;
+  const n=aud.ctx.currentTime;
+  [100,80,60,40].forEach((f,i)=>audNote(f,.25,'sawtooth',.12,n+i*.18));
+}
+function sfxWin(){
+  if(!aud.ctx||aud.ctx.state!=='running') return;
+  const n=aud.ctx.currentTime;
+  [523,659,784,1047,784,1047].forEach((f,i)=>audNote(f,.18,'square',.08,n+i*.1));
+}
+function sfxGameover(){
+  if(!aud.ctx||aud.ctx.state!=='running') return;
+  const n=aud.ctx.currentTime;
+  [392,330,262,196].forEach((f,i)=>audNote(f,.25,'sawtooth',.09,n+i*.18));
+}
 
-    function pixelRect(x, y, w, h, fill) {
-      ctx.fillStyle = fill;
-      ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+// ═══════════════════════════════════════════════════════
+// GAME DATA
+// ═══════════════════════════════════════════════════════
+const ENEMY_TYPES = {
+  glavspec:{label:'Главспец',   color:'#ffb347',shadow:'#c87020',hp:2,spd:105,dmg:10,sc:12,beh:'direct',size:26},
+  gip:     {label:'ГИП',        color:'#ff6b6b',shadow:'#b03030',hp:3,spd:85, dmg:14,sc:18,beh:'stomp', size:28},
+  smezhnik:{label:'Смежник',    color:'#6cd4ff',shadow:'#3090c0',hp:2,spd:125,dmg:10,sc:14,beh:'zigzag',size:24},
+  customer:{label:'Заказчик',   color:'#e46bff',shadow:'#903cb0',hp:4,spd:70, dmg:18,sc:24,beh:'shoot', size:30},
+  sysadmin:{label:'Сисадмин',   color:'#71dcb0',shadow:'#2a9060',hp:1,spd:170,dmg:8, sc:10,beh:'dodge', size:22}
+};
+
+const WAVES = [
+  ['glavspec','glavspec','glavspec'],
+  ['glavspec','glavspec','smezhnik','smezhnik'],
+  ['gip','gip','smezhnik','smezhnik'],
+  ['customer','customer','glavspec','glavspec'],
+  ['glavspec','smezhnik','gip','customer','sysadmin'],
+  ['gip','gip','customer','sysadmin','sysadmin','smezhnik'],
+  ['customer','customer','gip','gip','sysadmin','smezhnik','glavspec']
+];
+
+const QUOTES = {
+  glavspec:[
+    'Когда выдадите задание на раздел?',
+    'Срочно накинул ещё задач в ТЗ',
+    'Надо до вечера сделать три варианта',
+    'Почему нет исходных данных?',
+    'Когда будет ведомость объёмов работ?',
+    'Нормали устарели, всё надо переработать',
+    'По заданию у вас несоответствие с ПЗ',
+    'Уточните нагрузки на перекрытия',
+    'Задание выдали вчера — сегодня должны сдать',
+    'Раздел ЭОМ не выдан, но вы уже должны учесть'
+  ],
+  gip:[
+    'Всё нужно переделать',
+    'Заказчику это не понравится',
+    'Нужно срочно внести правки в рабочку',
+    'У вас не хватает листа с узлами',
+    'Это не соответствует техническому заданию',
+    'Экспертиза завернёт — переделывайте',
+    'Почему в штампе не та организация?',
+    'Согласуйте с конструкторами и перевыпустите',
+    'Статус «П» уже был — это должна быть «Р»',
+    'Переведите всё в DWG и пришлите архивом',
+    'Поменяйте марку стали на листах',
+    'Выпускайте по ревизии, а не с нуля'
+  ],
+  smezhnik:[
+    'Нужно поправить все коллизии',
+    'Мы сети пересекли, но двигать будете вы',
+    'Ваш воздуховод режет наш проём',
+    'В BIM-модели не совпадают отметки',
+    'Ваши кабельные лотки мешают нашей разводке',
+    'Ось В у вас съехала на 50 мм',
+    'Мы уже выпустили — теперь вы перепроектируйте',
+    'У вас опора попала в нашу шахту',
+    'Мы задание не получали, это ваш косяк',
+    'Сначала вы, потом мы — но сроки общие'
+  ],
+  customer:[
+    'Давайте не по СП',
+    'Сделайте красиво, нормы — не главное',
+    'Нам нужно совсем не так, как разрешено',
+    'А можно без проекта сразу строить?',
+    'Поменяйте всё — концепция изменилась',
+    'Мы решили убрать все колонны на этаже',
+    'Добавьте ещё один этаж, фундамент оставьте',
+    'Нам сказали, что это можно — вы просто не хотите',
+    'Почему нельзя сделать окна в несущей стене?',
+    'Переделайте фасады — прислали картинку из интернета',
+    'Когда будет PDF со всеми разделами в одном файле?',
+    'Сделайте три варианта к утреннему совещанию',
+    'Почему так дорого? Уберите всё лишнее'
+  ],
+  sysadmin:[
+    'Revit упал — ваши файлы не сохранились',
+    'Обновление AutoCAD — перезагрузите компьютер',
+    'Сервер недоступен, работайте локально',
+    'VPN не работает — документы не загрузить',
+    'Ваш файл заблокирован другим пользователем',
+    'Принтер не видит ваш чертёж',
+    'Облако переполнено — удалите старые версии'
+  ],
+  boss:[
+    'Давайте не по СП',
+    'Всё нужно переделать',
+    'Когда будет пэдэфка?',
+    'Сделайте срочно три варианта',
+    'Это нужно было ещё вчера',
+    'Мы меняем концепцию — с нуля',
+    'Перенесите сроки и добавьте ещё раздел',
+    'Привлеките субпроектировщиков за ваш счёт',
+    'Почему фасад не как у соседнего здания?',
+    'Согласуйте в Москомархитектуре — у вас же связи?',
+    'Мы решили поменять всю планировку',
+    'Заказчику это категорически не понравится'
+  ]
+};
+
+const PICKUPS = {
+  tea:      {icon:'☕',color:'#c68642',label:'Чай',      tip:'−25 стресса'},
+  dblshot:  {icon:'📋',color:'#ffd76f',label:'2× чертёж',tip:'10 сек'},
+  speed:    {icon:'⚡',color:'#53d8a7',label:'Ускорение', tip:'8 сек'},
+  bigshot:  {icon:'📄',color:'#9de6ff',label:'Большой',  tip:'5 выстрелов'}
+};
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+const st = {
+  // lifecycle
+  phase:'title', // title|intro|playing|wavepause|bossentry|gameover|win
+  introTimer:0, wavePauseTimer:0, bossEntryTimer:0,
+  // player
+  px:W/2, py:H/2,
+  pdx:0, pdy:0,       // last movement direction
+  shotCd:0, teaCd:0,
+  // game stats
+  score:0, stress:0, wave:0, defeated:0,
+  // entities
+  enemies:[], shots:[], bossShots:[], particles:[], floats:[], pickups:[],
+  boss:null, bossSpawned:false,
+  // wave spawn queue
+  spawnQueue:[], spawnTimer:0,
+  // buffs: {type,timer,uses}
+  buffs:{},
+  // input
+  keys:{}, shiftFire:{x:0,y:0,active:false},
+  touchMove:{x:0,y:0}, touchFire:false, touchTea:false,
+  // misc
+  frame:0, shakeT:0, msgText:'',msgTimer:0,
+  musicEnabled:true
+};
+
+// ═══════════════════════════════════════════════════════
+// LEADERBOARD
+// ═══════════════════════════════════════════════════════
+const LS_KEY='deadline_panic_v2_scores';
+function lbLoad(){
+  try{return JSON.parse(localStorage.getItem(LS_KEY)||'[]');}catch{return [];}
+}
+function lbSave(score,wave){
+  const s=lbLoad();
+  s.push({score,wave,date:new Date().toLocaleDateString('ru')});
+  s.sort((a,b)=>b.score-a.score);
+  s.splice(5);
+  localStorage.setItem(LS_KEY,JSON.stringify(s));
+}
+function lbRender(highlight){
+  const s=lbLoad();
+  if(!s.length){uScores.innerHTML='Рекордов пока нет';return;}
+  uScores.innerHTML=s.map((e,i)=>
+    `<div class="${i===0?'hi':''}">${i+1}. ${e.score} очков — волна ${e.wave} (${e.date})</div>`
+  ).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════
+function pr(x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h));}
+function rnd(a,b){return a+Math.random()*(b-a);}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+function dist(ax,ay,bx,by){return Math.hypot(ax-bx,ay-by);}
+function overlap(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;}
+function randEdge(){
+  const side=Math.floor(Math.random()*4);
+  if(side===0) return {x:rnd(40,W-40),y:-30};
+  if(side===1) return {x:rnd(40,W-40),y:H+30};
+  if(side===2) return {x:-30,y:rnd(40,H-40)};
+  return {x:W+30,y:rnd(40,H-40)};
+}
+function pRect(){return {x:st.px-10,y:st.py-10,w:20,h:20};}
+function showMsg(t,d=2){st.msgText=t;st.msgTimer=d;}
+function addFloat(x,y,text,color='#ffd76f'){
+  st.floats.push({x,y,text,color,life:1.2,maxLife:1.2});
+}
+function addParticles(x,y,color,n=10,spd=80){
+  for(let i=0;i<n;i++){
+    const a=Math.random()*Math.PI*2;
+    const s=rnd(spd*.4,spd);
+    st.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,
+      color,life:rnd(.3,.7),maxLife:.6,size:rnd(2,5)});
+  }
+}
+// paper explosion (white+blue)
+function addPaperBurst(x,y){
+  for(let i=0;i<14;i++){
+    const a=Math.random()*Math.PI*2;
+    const s=rnd(60,160);
+    const c=Math.random()<.6?'#f0f4ff':'#7ad7ff';
+    st.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,
+      color:c,life:rnd(.4,.8),maxLife:.7,size:rnd(3,7)});
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// SPRITE DRAWING (top-down view, slight 3/4 angle)
+// ═══════════════════════════════════════════════════════
+function drawPlayer(x,y,dx,dy){
+  const cx=Math.round(x), cy=Math.round(y);
+  // shadow
+  ctx.globalAlpha=.25;
+  pr(cx-10,cy+10,22,6,'#000');
+  ctx.globalAlpha=1;
+  // legs
+  pr(cx-7,cy+4,6,10,'#2f3555');
+  pr(cx+1,cy+4,6,10,'#2f3555');
+  // shoes
+  pr(cx-8,cy+12,7,4,'#1c1c2a');
+  pr(cx+1,cy+12,7,4,'#1c1c2a');
+  // body/jacket
+  pr(cx-9,cy-4,18,12,'#30466d');
+  // shirt collar
+  pr(cx-3,cy-6,6,4,'#dfe9ff');
+  // tie
+  pr(cx-1,cy-4,2,8,'#6a9eff');
+  // head
+  pr(cx-6,cy-16,12,12,'#ffd5b8');
+  // hair
+  pr(cx-6,cy-16,12,4,'#4d3325');
+  // glasses
+  pr(cx-5,cy-12,3,2,'#1c2a4a');
+  pr(cx+2,cy-12,3,2,'#1c2a4a');
+  pr(cx-1,cy-12,2,1,'#5070a0');
+  // badge
+  pr(cx+4,cy-2,5,4,'#9ed0ff');
+  pr(cx+5,cy-1,3,2,'#1b3060');
+  // arm holding blueprint
+  if(dx>0||(!dx&&dy===0)){
+    pr(cx+9,cy-2,10,5,'#30466d');
+    pr(cx+18,cy-4,10,8,'#fff');
+    pr(cx+19,cy-3,8,1,'#7ad7ff');
+    pr(cx+19,cy-1,6,1,'#7ad7ff');
+    pr(cx+19,cy+1,7,1,'#7ad7ff');
+  } else {
+    pr(cx-18,cy-2,10,5,'#30466d');
+    pr(cx-26,cy-4,10,8,'#fff');
+    pr(cx-25,cy-3,8,1,'#7ad7ff');
+    pr(cx-25,cy-1,6,1,'#7ad7ff');
+    pr(cx-25,cy+1,7,1,'#7ad7ff');
+  }
+}
+
+function drawEnemy(e){
+  const cx=Math.round(e.x), cy=Math.round(e.y);
+  const t=ENEMY_TYPES[e.type];
+  const c=t.color, sh=t.shadow;
+  // shadow
+  ctx.globalAlpha=.2;
+  pr(cx-t.size/2,cy+t.size/2-2,t.size,6,'#000');
+  ctx.globalAlpha=1;
+  // legs
+  pr(cx-6,cy+4,5,9,sh);
+  pr(cx+1,cy+4,5,9,sh);
+  // body
+  pr(cx-9,cy-4,18,11,c);
+  // head
+  pr(cx-6,cy-15,12,11,e.type==='sysadmin'?'#e8e8e8':'#ffd4bc');
+  // type-specific detail
+  if(e.type==='gip'){
+    // red jacket detail
+    pr(cx-9,cy-8,3,6,sh);
+    pr(cx+6,cy-8,3,6,sh);
+    // papers in hand
+    pr(cx+9,cy-3,10,6,'#e8e8e8');
+    pr(cx+10,cy-2,8,1,'#7ad7ff');
+    pr(cx+10,cy,6,1,'#7ad7ff');
+  }
+  if(e.type==='customer'){
+    // purple jacket lapels
+    pr(cx-4,cy-7,3,8,'#b048d0');
+    pr(cx+1,cy-7,3,8,'#b048d0');
+    // gold tie
+    pr(cx-1,cy-4,2,7,'#ffd700');
+  }
+  if(e.type==='smezhnik'){
+    // collar
+    pr(cx-3,cy-6,6,3,'#fff');
+  }
+  if(e.type==='sysadmin'){
+    // headphones
+    pr(cx-7,cy-15,2,4,'#444');
+    pr(cx+5,cy-15,2,4,'#444');
+    pr(cx-7,cy-15,14,2,'#444');
+    // laptop under arm
+    pr(cx-14,cy-3,8,5,'#2a2a3a');
+    pr(cx-13,cy-2,6,3,'#5a8aff');
+  }
+  // HP bar
+  const bw=t.size+6, bh=4;
+  const bx=cx-bw/2, by=cy-t.size/2-8;
+  pr(bx,by,bw,bh,'#0c1125');
+  pr(bx,by,Math.round(bw*e.hp/e.maxHp),bh,e.hp>e.maxHp/2?'#53d8a7':'#ff4d6d');
+  // name label
+  ctx.font='bold 9px "Courier New"';
+  ctx.textAlign='center';
+  ctx.fillStyle='#f6e7b5';
+  ctx.fillText(t.label,cx,cy-t.size/2-10);
+}
+
+function drawBoss(b){
+  const cx=Math.round(b.x), cy=Math.round(b.y);
+  const phase=b.phase;
+  const base=phase===0?'#ff4499':phase===1?'#cc2277':'#ff2244';
+  const dark=phase===0?'#aa2266':phase===1?'#881144':'#cc0022';
+  const glow=phase===2;
+  // glow aura in phase 3
+  if(glow){
+    ctx.globalAlpha=.15+Math.sin(st.frame*.08)*.08;
+    pr(cx-36,cy-36,72,72,'#ff2244');
+    ctx.globalAlpha=1;
+  }
+  // shadow
+  ctx.globalAlpha=.3;
+  pr(cx-20,cy+22,42,10,'#000');
+  ctx.globalAlpha=1;
+  // legs
+  pr(cx-12,cy+6,10,18,dark);
+  pr(cx+2,cy+6,10,18,dark);
+  // shoes
+  pr(cx-14,cy+20,13,7,'#1a1a2a');
+  pr(cx+1,cy+20,13,7,'#1a1a2a');
+  // big body
+  pr(cx-16,cy-8,32,18,base);
+  // shoulders/epaulettes
+  pr(cx-20,cy-10,7,8,dark);
+  pr(cx+13,cy-10,7,8,dark);
+  pr(cx-22,cy-12,8,4,'#ffd700');
+  pr(cx+14,cy-12,8,4,'#ffd700');
+  // gold tie
+  pr(cx-2,cy-6,4,14,'#ffd700');
+  // head
+  pr(cx-12,cy-26,24,20,'#ffd4bc');
+  // hair
+  pr(cx-12,cy-26,24,5,dark);
+  // eyes (angry)
+  pr(cx-8,cy-22,4,3,'#2a1010');
+  pr(cx+4,cy-22,4,3,'#2a1010');
+  // eyebrows (frown)
+  pr(cx-9,cy-24,5,2,'#5a2020');
+  pr(cx+4,cy-24,5,2,'#5a2020');
+  // mouth
+  pr(cx-5,cy-16,10,2,'#7a2020');
+  // crown
+  pr(cx-10,cy-30,20,5,'#ffd700');
+  pr(cx-12,cy-33,4,4,'#ffd700');
+  pr(cx-2,cy-35,4,5,'#ffd700');
+  pr(cx+8,cy-33,4,4,'#ffd700');
+  // gems in crown
+  pr(cx-11,cy-32,3,3,'#ff4488');
+  pr(cx-2,cy-34,3,4,'#ff4488');
+  pr(cx+9,cy-32,3,3,'#ff4488');
+  // papers in both hands
+  pr(cx+16,cy-6,14,10,'#fff');
+  pr(cx+17,cy-5,12,1,'#7ad7ff');
+  pr(cx+17,cy-3,10,1,'#7ad7ff');
+  pr(cx+17,cy-1,11,1,'#7ad7ff');
+  pr(cx-30,cy-6,14,10,'#fff');
+  pr(cx-29,cy-5,12,1,'#7ad7ff');
+  pr(cx-29,cy-3,10,1,'#7ad7ff');
+  pr(cx-29,cy-1,11,1,'#7ad7ff');
+  // HP bar
+  const bw=80, bh=6;
+  const bx=cx-bw/2, by=cy-44;
+  pr(bx-1,by-1,bw+2,bh+2,'#0c1125');
+  const pct=b.hp/b.maxHp;
+  const bc=pct>.6?'#53d8a7':pct>.3?'#ffb347':'#ff4d6d';
+  pr(bx,by,Math.round(bw*pct),bh,bc);
+  // phase indicator
+  ctx.font='bold 9px "Courier New"';
+  ctx.textAlign='center';
+  ctx.fillStyle='#ffd76f';
+  ctx.fillText('ВЕЛИКИЙ ЗАКАЗЧИК — Ф.'+(b.phase+1),cx,cy-48);
+}
+
+function drawBlueprint(s){
+  const cx=Math.round(s.x), cy=Math.round(s.y);
+  const rot=s.rot||0;
+  ctx.save();
+  ctx.translate(cx,cy);
+  ctx.rotate(rot);
+  pr(-9,-6,18,12,'#fff');
+  pr(-8,-5,16,1,'#7ad7ff');
+  pr(-8,-3,12,1,'#7ad7ff');
+  pr(-8,-1,14,1,'#7ad7ff');
+  pr(-8,1,10,1,'#7ad7ff');
+  pr(-8,3,13,1,'#7ad7ff');
+  pr(5,-5,2,10,'#c0c8e0');
+  ctx.restore();
+}
+
+function drawBossShot(b){
+  const cx=Math.round(b.x), cy=Math.round(b.y);
+  const w=b.w, h=22;
+  pr(cx-w/2-2,cy-h/2-2,w+4,h+4,'#0c1125');
+  pr(cx-w/2,cy-h/2,w,h,'#1b2344');
+  pr(cx-w/2,cy-h/2,w,2,'#ff4d6d');
+  pr(cx-w/2,cy+h/2-2,w,2,'#ff4d6d');
+  ctx.font='bold 10px "Courier New"';
+  ctx.textAlign='center';
+  ctx.fillStyle='#f6e7b5';
+  const maxLen=Math.floor((w-8)/6);
+  const txt=b.text.length>maxLen?b.text.substring(0,maxLen-1)+'…':b.text;
+  ctx.fillText(txt,cx,cy+4);
+}
+
+function drawPickup(p){
+  const cx=Math.round(p.x), cy=Math.round(p.y);
+  const pulse=Math.sin(st.frame*.1)*.5+.5;
+  ctx.globalAlpha=.5+pulse*.4;
+  pr(cx-12,cy-12,24,24,PICKUPS[p.type].color+'44');
+  ctx.globalAlpha=1;
+  pr(cx-10,cy-10,20,20,'#1b2344');
+  pr(cx-10,cy-10,20,2,PICKUPS[p.type].color);
+  pr(cx-10,cy+8,20,2,PICKUPS[p.type].color);
+  ctx.font='14px serif';
+  ctx.textAlign='center';
+  ctx.fillText(PICKUPS[p.type].icon,cx,cy+5);
+}
+
+// ═══════════════════════════════════════════════════════
+// BACKGROUND
+// ═══════════════════════════════════════════════════════
+// Pre-draw static office elements (static desks/computers)
+const BG_ITEMS=[
+  {x:40, y:30},  {x:200,y:30},  {x:360,y:30},  {x:520,y:30},  {x:650,y:30},
+  {x:40, y:390}, {x:200,y:390}, {x:360,y:390}, {x:520,y:390}, {x:650,y:390},
+];
+function drawBackground(){
+  // floor
+  pr(0,0,W,H,'#101734');
+  // tile grid
+  ctx.strokeStyle='rgba(255,255,255,0.045)';
+  ctx.lineWidth=1;
+  for(let x=0;x<=W;x+=32){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<=H;y+=32){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  // perimeter strip (arena boundary)
+  pr(0,0,W,6,'#1e2a50');pr(0,H-6,W,6,'#1e2a50');
+  pr(0,0,6,H,'#1e2a50');pr(W-6,0,6,H,'#1e2a50');
+  // corner bolts
+  [[4,4],[W-12,4],[4,H-12],[W-12,H-12]].forEach(([bx,by])=>{
+    pr(bx,by,8,8,'#2a3a6a');pr(bx+2,by+2,4,4,'#44518a');
+  });
+  // desks (top-down view)
+  BG_ITEMS.forEach(d=>drawDesk(d.x,d.y));
+  // center table
+  drawDesk(310,200);
+}
+
+function drawDesk(x,y){
+  // desk surface
+  pr(x,y,80,50,'#3a2c1e');
+  pr(x+2,y+2,76,46,'#4a3828');
+  pr(x+2,y+2,76,4,'#6a5038');
+  // monitor
+  pr(x+8,y+6,28,20,'#1b223d');
+  pr(x+10,y+8,24,14,'#7ad7ff');
+  pr(x+11,y+9,20,2,'#effcff');
+  pr(x+11,y+13,16,1,'#4f78a0');
+  pr(x+11,y+16,18,1,'#4f78a0');
+  pr(x+18,y+24,6,4,'#505b79');
+  // keyboard
+  pr(x+8,y+34,30,8,'#d8dfea');
+  pr(x+10,y+36,26,1,'#8d99b5');
+  // papers stack
+  pr(x+44,y+8,26,16,'#e8e8e8');
+  pr(x+46,y+10,22,1,'#8d99b5');
+  pr(x+46,y+13,18,1,'#8d99b5');
+  pr(x+46,y+16,20,1,'#8d99b5');
+  // coffee cup
+  pr(x+62,y+30,10,10,'#c68642');
+  pr(x+64,y+32,6,6,'#f0e8c0');
+}
+
+// ═══════════════════════════════════════════════════════
+// STRESS VISUAL EFFECTS
+// ═══════════════════════════════════════════════════════
+function applyStressEffects(){
+  const s=st.stress;
+  const cvs=canvas;
+  if(s>=80){
+    const i=(s-80)/20;
+    frame.style.boxShadow=`inset 0 0 ${40*i}px rgba(255,50,50,${.5*i})`;
+    if(Math.random()<.06+i*.1){
+      const sx=(Math.random()-.5)*(s-60)/8;
+      const sy=(Math.random()-.5)*(s-60)/8;
+      cvs.style.transform=`translate(${sx}px,${sy}px)`;
+      setTimeout(()=>cvs.style.transform='',50);
     }
-
-    function setMusicLabel(text) {
-      musicState.textContent = text;
+  } else if(s>=60){
+    frame.style.boxShadow=`inset 0 0 20px rgba(255,140,50,.4)`;
+    if(Math.random()<.04){
+      const sx=(Math.random()-.5)*3;
+      const sy=(Math.random()-.5)*3;
+      cvs.style.transform=`translate(${sx}px,${sy}px)`;
+      setTimeout(()=>cvs.style.transform='',60);
     }
-
-    function playChipNote(freq, duration, type, volume, when) {
-      if (!music.context || !music.master || !freq) {
-        return;
-      }
-
-      const oscillator = music.context.createOscillator();
-      const gain = music.context.createGain();
-
-      oscillator.type = type;
-      oscillator.frequency.setValueAtTime(freq, when);
-      gain.gain.setValueAtTime(0.0001, when);
-      gain.gain.linearRampToValueAtTime(volume, when + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, when + duration);
-
-      oscillator.connect(gain);
-      gain.connect(music.master);
-      oscillator.start(when);
-      oscillator.stop(when + duration + 0.03);
+  } else {
+    frame.style.boxShadow='';
+  }
+  // pixel noise overlay
+  if(s>=40){
+    const n=Math.floor((s-40)/4);
+    for(let i=0;i<n;i++){
+      ctx.globalAlpha=.03+Math.random()*.04;
+      ctx.fillStyle=s>=70?'#ff4466':'#ffffff';
+      ctx.fillRect(Math.random()*W,Math.random()*H,2,1);
     }
+    ctx.globalAlpha=1;
+  }
+}
 
-    function playHitSound() {
-      if (!music.context || music.context.state !== "running" || !music.master) {
-        return;
-      }
+// ═══════════════════════════════════════════════════════
+// INPUT
+// ═══════════════════════════════════════════════════════
+document.addEventListener('keydown',e=>{
+  st.keys[e.code]=true;
+  if(e.code==='Space'){e.preventDefault();tryFire(st.pdx,st.pdy);}
+  if(e.code==='KeyQ') tryTea();
+  if(e.code==='KeyP'||e.code==='Escape') tryPause();
+  if(e.code==='KeyM') toggleMusic();
+  if(e.code==='Enter'){
+    if(st.phase==='title'||st.phase==='gameover'||st.phase==='win') startGame();
+  }
+  // Shift + direction = fire in that direction
+  if(e.shiftKey){
+    let fx=0,fy=0;
+    if(e.code==='KeyW'||e.code==='ArrowUp')    {fy=-1;}
+    if(e.code==='KeyS'||e.code==='ArrowDown')  {fy=1;}
+    if(e.code==='KeyA'||e.code==='ArrowLeft')  {fx=-1;}
+    if(e.code==='KeyD'||e.code==='ArrowRight') {fx=1;}
+    if(fx||fy){e.preventDefault();tryFire(fx,fy);}
+  }
+});
+document.addEventListener('keyup',e=>{st.keys[e.code]=false;});
 
-      const now = music.context.currentTime;
-      playChipNote(740, 0.04, "square", 0.05, now);
-      playChipNote(620, 0.06, "square", 0.04, now + 0.025);
-      playChipNote(220, 0.05, "triangle", 0.03, now + 0.01);
+// Buttons
+document.getElementById('btnStart').onclick=()=>startGame();
+document.getElementById('btnPause').onclick=()=>tryPause();
+document.getElementById('btnRestart').onclick=()=>startGame();
+document.getElementById('btnMusic').onclick=()=>toggleMusic();
+
+// ─── MOBILE JOYSTICK ────────────────────────────────
+const lstickZone=document.getElementById('lstick-zone');
+const lstickHandle=document.getElementById('lstick-handle');
+const STICK_R=33; // max displacement
+let lstickId=null;
+
+lstickZone.addEventListener('touchstart',e=>{
+  e.preventDefault();
+  const t=e.changedTouches[0];
+  lstickId=t.identifier;
+  updateStick(t);
+},{passive:false});
+lstickZone.addEventListener('touchmove',e=>{
+  e.preventDefault();
+  for(const t of e.changedTouches){
+    if(t.identifier===lstickId) updateStick(t);
+  }
+},{passive:false});
+lstickZone.addEventListener('touchend',e=>{
+  e.preventDefault();
+  for(const t of e.changedTouches){
+    if(t.identifier===lstickId){
+      lstickId=null;
+      st.touchMove={x:0,y:0};
+      lstickHandle.style.transform='translate(-50%,-50%)';
     }
-
-    function scheduleMusicChunk() {
-      if (!music.started || !music.enabled || !music.context) {
-        return;
-      }
-
-      const theme = musicThemes[music.theme];
-      while (music.nextTime < music.context.currentTime + 0.35) {
-        const leadNote = theme.lead[music.stepIndex % theme.lead.length];
-        const bassNote = theme.bass[music.stepIndex % theme.bass.length];
-        const noteTime = music.nextTime;
-
-        if (leadNote) {
-          playChipNote(noteMap[leadNote], theme.step * 0.92, "square", 0.08, noteTime);
-        }
-        if (bassNote) {
-          playChipNote(noteMap[bassNote], theme.step * 0.8, "triangle", 0.05, noteTime);
-        }
-        if (music.stepIndex % 4 === 0) {
-          playChipNote(92, 0.05, "square", 0.025, noteTime);
-        }
-
-        music.nextTime += theme.step;
-        music.stepIndex += 1;
-      }
-    }
-
-    async function initMusic() {
-      if (music.context) {
-        if (music.context.state === "suspended") {
-          await music.context.resume();
-        }
-        return;
-      }
-
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContextClass) {
-        setMusicLabel("браузер без audio");
-        music.enabled = false;
-        return;
-      }
-
-      music.context = new AudioContextClass();
-      music.master = music.context.createGain();
-      music.master.gain.value = 0.11;
-      music.master.connect(music.context.destination);
-      music.nextTime = music.context.currentTime + 0.05;
-      setMusicLabel("активна");
-    }
-
-    async function startMusic() {
-      if (!music.enabled) {
-        setMusicLabel("выключена");
-        return;
-      }
-
-      await initMusic();
-      if (!music.context || music.started) {
-        return;
-      }
-
-      music.started = true;
-      music.nextTime = music.context.currentTime + 0.05;
-      music.timer = window.setInterval(scheduleMusicChunk, 120);
-      setMusicLabel(music.theme === "boss" ? "босс-тема" : "героическая");
-    }
-
-    function stopMusic() {
-      music.started = false;
-      if (music.timer) {
-        window.clearInterval(music.timer);
-        music.timer = null;
-      }
-      setMusicLabel(music.enabled ? "на паузе" : "выключена");
-    }
-
-    async function toggleMusic() {
-      music.enabled = !music.enabled;
-      if (music.enabled) {
-        await startMusic();
-      } else {
-        stopMusic();
-      }
-    }
-
-    function setMusicTheme(theme) {
-      if (music.theme === theme) {
-        return;
-      }
-      music.theme = theme;
-      music.stepIndex = 0;
-      if (music.context) {
-        music.nextTime = music.context.currentTime + 0.05;
-      }
-      if (music.enabled) {
-        setMusicLabel(theme === "boss" ? "босс-тема" : "героическая");
-      }
-    }
-
-    function addQuote(text) {
-      if (!quoteList) {
-        return;
-      }
-      const item = document.createElement("div");
-      item.className = "quote";
-      item.textContent = text;
-      quoteList.prepend(item);
-      while (quoteList.children.length > 7) {
-        quoteList.removeChild(quoteList.lastChild);
-      }
-    }
-
-    async function launchIntro(shouldStartAudio = true) {
-      state.intro = true;
-      state.introFrame = 0;
-      state.running = false;
-      state.paused = false;
-      state.gameOver = false;
-      state.win = false;
-      state.score = 0;
-      state.stress = 0;
-      state.wave = 1;
-      state.defeated = 0;
-      state.bossSpawned = false;
-      state.lastSpawn = 0;
-      state.enemies = [];
-      state.shots = [];
-      state.particles = [];
-      state.floatingTexts = [];
-      state.bossShots = [];
-      state.boss = null;
-      state.message = "Проектировщик спокойно работает";
-      state.messageTimer = 9999;
-      state.player = {
-        x: 186,
-        y: HEIGHT - 184,
-        w: 36,
-        h: 54,
-        speed: 4.8,
-        facing: 1,
-        tea: 3
-      };
-      if (shouldStartAudio) {
-        await startMusic();
-      }
-      updateHud();
-    }
-
-    async function resetGame(shouldStartAudio = true) {
-      state.intro = false;
-      state.introFrame = 0;
-      state.running = true;
-      state.paused = false;
-      state.gameOver = false;
-      state.win = false;
-      state.score = 0;
-      state.stress = 0;
-      state.wave = 1;
-      state.defeated = 0;
-      state.bossSpawned = false;
-      state.lastSpawn = 0;
-      state.spawnDelay = 250;
-      state.teaCooldown = 0;
-      state.messageTimer = 240;
-      state.message = "Проектировщик вышел на смену";
-      state.enemies = [];
-      state.shots = [];
-      state.particles = [];
-      state.floatingTexts = [];
-      state.bossShots = [];
-      state.boss = null;
-      setMusicTheme("normal");
-      state.player = {
-        x: 84,
-        y: HEIGHT / 2 - 20,
-        w: 36,
-        h: 54,
-        speed: 4.8,
-        facing: 1,
-        tea: 3
-      };
-      if (quoteList) {
-        quoteList.innerHTML = "";
-      }
-      quotes.forEach(addQuote);
-      if (shouldStartAudio) {
-        await startMusic();
-      }
-      updateHud();
-    }
-
-    function spawnEnemy() {
-      const template = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
-      const scale = 1 + Math.min(0.8, state.wave * 0.05);
-      const enemy = {
-        x: WIDTH + 30,
-        y: 52 + Math.random() * Math.max(180, HEIGHT - 220),
-        w: 34,
-        h: 50,
-        hp: Math.ceil(template.hp * scale),
-        maxHp: Math.ceil(template.hp * scale),
-        speed: template.speed + Math.random() * 0.65 + state.wave * 0.08,
-        damage: template.damage,
-        score: template.score,
-        color: template.color,
-        label: template.label,
-        line: template.lines[Math.floor(Math.random() * template.lines.length)],
-        knockback: 0,
-        type: template.id
-      };
-      state.enemies.push(enemy);
-      addQuote(enemy.line);
-    }
-
-    function spawnBoss() {
-      state.bossSpawned = true;
-      setMusicTheme("boss");
-      state.boss = {
-        x: WIDTH - 180,
-        y: HEIGHT / 2 - 96,
-        w: 96,
-        h: 132,
-        hp: bossTemplate.hp,
-        maxHp: bossTemplate.hp,
-        speed: bossTemplate.speed,
-        damage: bossTemplate.damage,
-        score: bossTemplate.score,
-        color: bossTemplate.color,
-        label: bossTemplate.label,
-        line: bossTemplate.lines[0],
-        phase: 0,
-        vx: -1.35,
-        vy: 1.05,
-        shotCooldown: 48
-      };
-      state.message = "Босс вышел: Великий заказчик";
-      state.messageTimer = 280;
-      addQuote("Давайте не по СП");
-    }
-
-    function spawnBossPhrase() {
-      if (!state.boss || !state.player) {
-        return;
-      }
-
-      const boss = state.boss;
-      const player = state.player;
-      const text = bossTemplate.lines[Math.floor(Math.random() * bossTemplate.lines.length)];
-      const fromX = boss.x + boss.w / 2;
-      const fromY = boss.y + 28;
-      const toX = player.x + player.w / 2;
-      const toY = player.y + 18;
-      const dx = toX - fromX;
-      const dy = toY - fromY;
-      const length = Math.max(1, Math.hypot(dx, dy));
-
-      boss.line = text;
-      addQuote(text);
-      state.bossShots.push({
-        x: fromX,
-        y: fromY,
-        vx: (dx / length) * 3.2,
-        vy: (dy / length) * 3.2,
-        text,
-        w: Math.min(210, Math.max(120, text.length * 7.5 + 16)),
-        h: 22,
-        life: 180
-      });
-    }
-
-    function fireShot() {
-      if (!state.running || state.paused || state.gameOver) {
-        return;
-      }
-      const player = state.player;
-      state.shots.push({
-        x: player.x + player.w + 2,
-        y: player.y + 22,
-        w: 20,
-        h: 8,
-        speed: 9.4,
-        damage: 1
-      });
-    }
-
-    function drinkTea() {
-      if (!state.running || state.paused || state.gameOver || state.teaCooldown > 0) {
-        return;
-      }
-      state.stress = Math.max(0, state.stress - 18);
-      state.teaCooldown = 420;
-      state.message = "Проектировщик пьет чай и восстанавливает нервную систему";
-      state.messageTimer = 160;
-      for (let i = 0; i < 10; i += 1) {
-        state.particles.push({
-          x: state.player.x + 12,
-          y: state.player.y + 4,
-          vx: 0.4 + Math.random() * 1.1,
-          vy: -1 - Math.random() * 1.5,
-          life: 40,
-          color: "#b7fff1"
-        });
-      }
-      updateHud();
-    }
-
-    function togglePause() {
-      if (state.gameOver || state.intro) {
-        return;
-      }
-      if (!state.running && !state.paused) {
-        return;
-      }
-      state.paused = !state.paused;
-      state.running = !state.paused;
-      state.message = state.paused ? "Пауза" : "Смена продолжается";
-      state.messageTimer = 9999;
-      updateHud();
-    }
-
-    function hitEnemy(enemy, amount) {
-      enemy.hp -= amount;
-      enemy.knockback = 18;
-      state.floatingTexts.push({
-        x: enemy.x,
-        y: enemy.y - 6,
-        text: "-лист",
-        color: "#ffd76f",
-        life: 40
-      });
-      playHitSound();
-      for (let i = 0; i < 8; i += 1) {
-        state.particles.push({
-          x: enemy.x + enemy.w / 2,
-          y: enemy.y + enemy.h / 2,
-          vx: (Math.random() - 0.5) * 3,
-          vy: (Math.random() - 0.5) * 3,
-          life: 30,
-          color: enemy.color
-        });
-      }
-    }
-
-    function destroyBossPhrase(shot) {
-      state.floatingTexts.push({
-        x: shot.x - 24,
-        y: shot.y - 6,
-        text: "РАЗБИТО",
-        color: "#9de6ff",
-        life: 36
-      });
-      for (let i = 0; i < 12; i += 1) {
-        state.particles.push({
-          x: shot.x,
-          y: shot.y,
-          vx: (Math.random() - 0.5) * 4.2,
-          vy: (Math.random() - 0.5) * 3.8,
-          life: 28,
-          color: i % 2 === 0 ? "#fff4cf" : "#8fe3ff"
-        });
-      }
-      playHitSound();
-      shot.life = 0;
-    }
-
-    function resolveEnemyDefeat(enemy, isBoss = false) {
-      const reward = Number.isFinite(enemy.score) ? enemy.score : 0;
-      state.score += reward;
-      state.defeated += isBoss ? 0 : 1;
-      state.floatingTexts.push({
-        x: enemy.x,
-        y: enemy.y,
-        text: isBoss ? "ЧАЙ!" : "+" + reward,
-        color: "#53d8a7",
-        life: 50
-      });
-      if (isBoss) {
-        state.win = true;
-        state.running = false;
-        state.gameOver = true;
-        state.message = "Заказчик повержен. Можно спокойно пить чай.";
-        state.messageTimer = 9999;
-        setMusicTheme("normal");
-      }
-      updateHud();
-    }
-
-    function handleEnemyBreach(enemy, isBoss = false) {
-      const penalty = isBoss ? 28 : 12;
-      state.score = Math.max(0, state.score - penalty);
-      state.floatingTexts.push({
-        x: Math.max(18, enemy.x + 8),
-        y: Math.max(44, enemy.y),
-        text: isBoss ? "-аврал" : "-сроки",
-        color: "#ff8a8a",
-        life: 56
-      });
-      addStress(isBoss ? 20 : 9, isBoss ? "Босс продавил дедлайн и навалил правок" : "Враг дошел до края и навалил работы");
-    }
-
-    function addStress(amount, phrase) {
-      state.stress = Math.min(100, state.stress + amount);
-      state.message = phrase;
-      state.messageTimer = 150;
-      updateHud();
-      if (state.stress >= 100) {
-        state.running = false;
-        state.gameOver = true;
-        state.win = false;
-        state.message = "Вас завалили чертежами и письмами. Вы сидите до ночи.";
-        state.messageTimer = 9999;
-        setMusicTheme("normal");
-      }
-    }
-
-    function overlap(a, b) {
-      return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
-    }
-
-    function updateGame(frame) {
-      if (!state.running || state.paused) {
-        return;
-      }
-
-      const p = state.player;
-      if (state.keys.ArrowUp || state.keys.KeyW) p.y -= p.speed;
-      if (state.keys.ArrowDown || state.keys.KeyS) p.y += p.speed;
-      if (state.keys.ArrowLeft || state.keys.KeyA) p.x -= p.speed;
-      if (state.keys.ArrowRight || state.keys.KeyD) p.x += p.speed;
-
-      p.x = Math.max(10, Math.min(WIDTH - 70, p.x));
-      p.y = Math.max(50, Math.min(HEIGHT - 112, p.y));
-
-      if (!state.bossSpawned && frame - state.lastSpawn > state.spawnDelay) {
-        spawnEnemy();
-        state.lastSpawn = frame;
-        state.wave = 1 + Math.floor(state.defeated / 4);
-        state.spawnDelay = Math.max(70, 250 - state.wave * 14);
-        if (state.wave >= 2 && Math.random() < 0.55) {
-          spawnEnemy();
-        }
-        if (state.defeated >= 14) {
-          spawnBoss();
-        }
-        updateHud();
-      }
-
-      state.shots.forEach((shot) => {
-        shot.x += shot.speed;
-      });
-      state.shots = state.shots.filter((shot) => shot.x < WIDTH + 30);
-
-      state.enemies.forEach((enemy) => {
-        enemy.x -= enemy.speed + (enemy.knockback > 0 ? -1.5 : 0);
-        if (enemy.knockback > 0) {
-          enemy.knockback -= 1;
-        }
-        if (overlap(enemy, p)) {
-          addStress(enemy.damage, enemy.line);
-          enemy.hp = 0;
-        }
-      });
-
-      if (state.boss) {
-        const boss = state.boss;
-        boss.phase += 0.04;
-        boss.x += boss.vx;
-        boss.y += boss.vy + Math.sin(boss.phase) * 0.45;
-
-        if (boss.x < 64 || boss.x > WIDTH - 120) {
-          boss.vx *= -1;
-        }
-        if (boss.y < 72 || boss.y > HEIGHT - 180) {
-          boss.vy *= -1;
-        }
-
-        boss.shotCooldown -= 1;
-        if (boss.shotCooldown <= 0) {
-          spawnBossPhrase();
-          boss.shotCooldown = 44 + Math.floor(Math.random() * 24);
-        }
-        if (overlap(boss, p)) {
-          addStress(boss.damage, boss.line || "Все нужно переделать");
-        }
-      }
-
-      state.bossShots.forEach((shot) => {
-        shot.x += shot.vx;
-        shot.y += shot.vy;
-        shot.life -= 1;
-
-        const hitbox = {
-          x: shot.x - shot.w / 2,
-          y: shot.y - shot.h / 2,
-          w: shot.w,
-          h: shot.h
-        };
-        if (overlap(hitbox, p)) {
-          addStress(7, shot.text);
-          shot.life = 0;
-        }
-      });
-      state.bossShots = state.bossShots.filter((shot) => {
-        return shot.life > 0 && shot.x > -shot.w && shot.x < WIDTH + shot.w && shot.y > -40 && shot.y < HEIGHT + 40;
-      });
-
-      state.shots.forEach((shot) => {
-        state.bossShots.forEach((bossShot) => {
-          if (bossShot.life <= 0) {
-            return;
-          }
-          const hitbox = {
-            x: bossShot.x - bossShot.w / 2,
-            y: bossShot.y - bossShot.h / 2,
-            w: bossShot.w,
-            h: bossShot.h
-          };
-          if (overlap(shot, hitbox)) {
-            shot.x = WIDTH + 100;
-            destroyBossPhrase(bossShot);
-          }
-        });
-        state.enemies.forEach((enemy) => {
-          if (enemy.hp > 0 && overlap(shot, enemy)) {
-            shot.x = WIDTH + 100;
-            hitEnemy(enemy, shot.damage);
-          }
-        });
-        if (state.boss && state.boss.hp > 0 && overlap(shot, state.boss)) {
-          shot.x = WIDTH + 100;
-          hitEnemy(state.boss, shot.damage);
-        }
-      });
-
-      state.enemies = state.enemies.filter((enemy) => {
-        if (enemy.x <= 0) {
-          handleEnemyBreach(enemy, false);
-          return false;
-        }
-        if (enemy.hp <= 0) {
-          resolveEnemyDefeat(enemy, false);
-          return false;
-        }
-        return enemy.x + enemy.w > -20;
-      });
-
-      if (state.boss && state.boss.x <= 0) {
-        handleEnemyBreach(state.boss, true);
-        state.boss.x = 12;
-      }
-
-      if (state.boss && state.boss.hp <= 0) {
-        resolveEnemyDefeat(state.boss, true);
-        state.boss = null;
-      }
-
-      state.particles.forEach((particle) => {
-        particle.x += particle.vx;
-        particle.y += particle.vy;
-        particle.life -= 1;
-      });
-      state.particles = state.particles.filter((particle) => particle.life > 0);
-
-      state.floatingTexts.forEach((item) => {
-        item.y -= 0.55;
-        item.life -= 1;
-      });
-      state.floatingTexts = state.floatingTexts.filter((item) => item.life > 0);
-
-      if (state.teaCooldown > 0) {
-        state.teaCooldown -= 1;
-      }
-      if (state.messageTimer > 0) {
-        state.messageTimer -= 1;
-      }
-      updateHud();
-    }
-
-    function updateIntro() {
-      if (!state.intro) {
-        return;
-      }
-
-      state.introFrame += 1;
-      if (state.introFrame < 120) {
-        state.message = "Проектировщик спокойно работает";
-      } else if (state.introFrame < 250) {
-        state.message = "На столе чертежи, письма и недопитый чай";
-      } else if (state.introFrame < 380) {
-        state.message = "ГИП подходит к столу";
-      } else {
-        state.message = "Надо все переделать";
-      }
-
-      if (state.introFrame >= 470) {
-        resetGame(false);
-      }
-    }
-
-    function drawBackground() {
-      pixelRect(0, 0, WIDTH, HEIGHT, "#101734");
-
-      for (let x = 0; x < WIDTH; x += 32) {
-        for (let y = 0; y < HEIGHT; y += 32) {
-          ctx.strokeStyle = "rgba(255,255,255,0.04)";
-          ctx.strokeRect(x, y, 32, 32);
-        }
-      }
-
-      pixelRect(0, HEIGHT - 32, WIDTH, 32, "#203052");
-      pixelRect(0, HEIGHT - 24, WIDTH, 8, "#324a79");
-      pixelRect(0, HEIGHT - 16, WIDTH, 4, "#17203e");
-
-      const blinkPhase = Math.floor(frame / 18) % 6;
-      const blinkColors = ["#9de6ff", "#7ad7ff", "#b7f1ff", "#8fe3ff", "#d9fbff", "#86dcff"];
-
-      for (let i = 0; i < 5; i += 1) {
-        const px = 30 + i * 136;
-        const leftScreen = blinkColors[(blinkPhase + i) % blinkColors.length];
-        const rightScreen = blinkColors[(blinkPhase + i + 2) % blinkColors.length];
-        pixelRect(px, HEIGHT - 42, 82, 12, "#5b3d2c");
-        pixelRect(px + 2, HEIGHT - 40, 78, 3, "#8a5b41");
-        pixelRect(px + 4, HEIGHT - 37, 74, 2, "#3a2519");
-        pixelRect(px + 8, HEIGHT - 32, 22, 24, "#1b223d");
-        pixelRect(px + 10, HEIGHT - 30, 18, 16, leftScreen);
-        pixelRect(px + 12, HEIGHT - 28, 14, 2, "#effcff");
-        pixelRect(px + 12, HEIGHT - 24, 10, 1, "#4f78a0");
-        pixelRect(px + 12, HEIGHT - 21, 12, 1, "#4f78a0");
-        pixelRect(px + 14, HEIGHT - 12, 8, 4, "#505b79");
-        pixelRect(px + 12, HEIGHT - 8, 12, 2, "#313a56");
-        pixelRect(px + 42, HEIGHT - 34, 26, 22, "#1b223d");
-        pixelRect(px + 44, HEIGHT - 32, 22, 14, rightScreen);
-        pixelRect(px + 46, HEIGHT - 30, 18, 2, "#effcff");
-        pixelRect(px + 46, HEIGHT - 26, 14, 1, "#4f78a0");
-        pixelRect(px + 46, HEIGHT - 23, 12, 1, "#4f78a0");
-        pixelRect(px + 48, HEIGHT - 18, 12, 3, "#505b79");
-        pixelRect(px + 46, HEIGHT - 14, 16, 2, "#313a56");
-        pixelRect(px + 69, HEIGHT - 30, 10, 7, "#d8dfea");
-        pixelRect(px + 71, HEIGHT - 28, 6, 3, "#ffffff");
-        pixelRect(px + 70, HEIGHT - 22, 8, 2, "#8d99b5");
-        pixelRect(px + 34, HEIGHT - 21, 6, 2, "#d9d2b7");
-        pixelRect(px + 31, HEIGHT - 19, 12, 3, "#d9d2b7");
-        pixelRect(px + 32, HEIGHT - 16, 10, 4, "#6f472d");
-        pixelRect(px + 8, HEIGHT - 8, 6, 8, "#3f2b1e");
-        pixelRect(px + 68, HEIGHT - 8, 6, 8, "#3f2b1e");
-      }
-
-      const steamOffset = Math.sin(frame * 0.09) * 2;
-      const steamLift = Math.floor((Math.sin(frame * 0.07) + 1) * 3);
-      pixelRect(86 + steamOffset, HEIGHT - 34 - steamLift, 2, 8, "#fff1b8");
-      pixelRect(92 - steamOffset, HEIGHT - 38 - steamLift, 2, 10, "#fff1b8");
-      pixelRect(98 + steamOffset, HEIGHT - 33 - steamLift, 2, 7, "#fff1b8");
-
-      for (let i = 0; i < 7; i += 1) {
-        const wireX = 20 + i * 98;
-        pixelRect(wireX, HEIGHT - 4, 24, 2, "#11182f");
-        pixelRect(wireX + 10, HEIGHT - 2, 2, 2, "#11182f");
-      }
-
-      for (let i = 0; i < 6; i += 1) {
-        const chairX = 12 + i * 118;
-        pixelRect(chairX, HEIGHT - 16, 16, 10, "#2d1931");
-        pixelRect(chairX + 4, HEIGHT - 26, 8, 10, "#4b2753");
-        pixelRect(chairX + 2, HEIGHT - 6, 4, 6, "#1f1224");
-        pixelRect(chairX + 10, HEIGHT - 6, 4, 6, "#1f1224");
-      }
-    }
-
-    function drawIntro() {
-      drawBackground();
-
-      const deskX = 146;
-      const deskY = 214;
-      const gipStep = Math.sin(state.introFrame * 0.22) * 3;
-      const gipX = Math.min(514, WIDTH + 154 - state.introFrame * 1.48);
-      const gipY = 172 + gipStep;
-      const typingPulse = Math.floor(state.introFrame / 10) % 2;
-      const monitorGlow = typingPulse ? "#c8f6ff" : "#98e4ff";
-      const lampGlow = Math.floor(state.introFrame / 14) % 2 ? "#ffe7a6" : "#fff0be";
-      const clockTick = Math.floor(state.introFrame / 24) % 12;
-      const cursorBlink = Math.floor(state.introFrame / 7) % 2;
-      const steamLift = Math.sin(state.introFrame * 0.08) * 2;
-      const introLines = state.introFrame > 330
-        ? ["ГИП: Надо все переделать.", "Сейчас проект полетит в аврал."]
-        : (state.introFrame > 220
-          ? ["ГИП подходит к столу проектировщика", "с новой пачкой правок."]
-          : ["Проектировщик сидит за компьютером,", "печатает и выпускает чертежи."]);
-
-      pixelRect(18, 58, WIDTH - 36, 266, "rgba(255,255,255,0.02)");
-      pixelRect(18, 58, WIDTH - 36, 10, "rgba(255,255,255,0.04)");
-      pixelRect(30, 72, WIDTH - 60, 238, "rgba(6,9,25,0.18)");
-      pixelRect(42, 82, 88, 84, "#222846");
-      pixelRect(48, 88, 76, 72, "#d8dded");
-      pixelRect(82, 104, 2, 28, "#68779d");
-      pixelRect(82, 104, 18, 2, "#68779d");
-      pixelRect(82 + (clockTick % 7), 126 - (clockTick > 4 ? 4 : 0), 2, 10, "#49597f");
-      pixelRect(154, 84, 120, 92, "#1b223d");
-      pixelRect(162, 92, 104, 76, "#2c3c69");
-      pixelRect(174, 108, 80, 3, "#7ad7ff");
-      pixelRect(174, 121, 66, 3, "#7ad7ff");
-      pixelRect(174, 134, 72, 3, "#7ad7ff");
-      pixelRect(174, 147, 54, 3, "#7ad7ff");
-      pixelRect(598, 90, 44, 94, "#26425f");
-      pixelRect(604, 96, 32, 40, "#3c8c67");
-      pixelRect(602, 130, 36, 28, "#2d6c4d");
-      pixelRect(596, 158, 48, 14, "#694c38");
-      pixelRect(492, 92, 86, 76, "#1c2342");
-      pixelRect(500, 100, 70, 60, "#32456d");
-      pixelRect(508, 108, 54, 44, "#4f638f");
-      pixelRect(516, 116, 38, 3, "#e6f0ff");
-      pixelRect(516, 128, 30, 2, "#e6f0ff");
-      pixelRect(516, 138, 34, 2, "#e6f0ff");
-
-      pixelRect(deskX - 18, deskY + 104, 380, 18, "rgba(0,0,0,0.16)");
-      pixelRect(deskX, deskY, 336, 20, "#5b3d2c");
-      pixelRect(deskX + 4, deskY + 3, 328, 5, "#8a5b41");
-      pixelRect(deskX + 8, deskY + 12, 320, 3, "#3a2519");
-      pixelRect(deskX + 24, deskY + 20, 14, 108, "#3f2b1e");
-      pixelRect(deskX + 296, deskY + 20, 14, 108, "#3f2b1e");
-      pixelRect(deskX + 156, deskY + 20, 14, 98, "#3f2b1e");
-      pixelRect(deskX + 204, deskY + 18, 80, 66, "#1b223d");
-      pixelRect(deskX + 212, deskY + 26, 64, 42, monitorGlow);
-      pixelRect(deskX + 220, deskY + 34, 48, 4, "#effcff");
-      pixelRect(deskX + 220, deskY + 46, 40, 2, "#5483ac");
-      pixelRect(deskX + 220, deskY + 56, 44, 2, "#5483ac");
-      pixelRect(deskX + 220, deskY + 64, 26 + typingPulse * 12, 2, "#ffffff");
-      pixelRect(deskX + 222 + cursorBlink * 12, deskY + 64, 2, 2, "#1b223d");
-      pixelRect(deskX + 226, deskY + 84, 40, 8, "#505b79");
-      pixelRect(deskX + 222, deskY + 92, 48, 2, "#313a56");
-      pixelRect(deskX + 76, deskY + 26, 96, 18, "#d8dfea");
-      pixelRect(deskX + 84, deskY + 34, 80, 2, "#8d99b5");
-      pixelRect(deskX + 90, deskY + 50, 60, 5, "#d9d2b7");
-      pixelRect(deskX + 92, deskY + 58, 44, 2, "#ac8b5d");
-      pixelRect(deskX + 174, deskY + 32, 22, 28, "#2b3356");
-      pixelRect(deskX + 178, deskY + 36, 14, 18, "#11192f");
-      pixelRect(deskX + 286, deskY + 20, 18, 38, "#4b4b63");
-      pixelRect(deskX + 290, deskY + 26, 10, 28, lampGlow);
-      pixelRect(deskX + 300, deskY + 14, 18, 8, "#4b4b63");
-      pixelRect(deskX + 274, deskY + 58, 30, 4, "#4b4b63");
-      pixelRect(deskX + 304, deskY + 24, 32, 2, lampGlow);
-      pixelRect(deskX + 312, deskY + 26, 42, 30, "rgba(255, 240, 190, 0.14)");
-      pixelRect(deskX + 102, deskY + 82, 70, 12, "#d9d2b7");
-      pixelRect(deskX + 108, deskY + 86, 58, 2, "#8d99b5");
-      pixelRect(deskX + 180, deskY + 82, 18, 24, "#c68642");
-      pixelRect(deskX + 194, deskY + 88, 8, 10, "#0c1125");
-      pixelRect(deskX + 182 + steamLift, deskY + 70 - steamLift, 2, 9, "#fff3c4");
-      pixelRect(deskX + 188 - steamLift, deskY + 66 - steamLift, 2, 11, "#fff3c4");
-      pixelRect(deskX + 114, deskY + 98, 88, 10, "#c8d1e8");
-      pixelRect(deskX + 120, deskY + 102, 76, 2, "#7f8eb0");
-      pixelRect(deskX + 82, deskY + 112, 96, 5, "rgba(0,0,0,0.18)");
-
-      drawCinematicPerson(deskX + 52, deskY - 42, {
-        hair: "#4d3325",
-        hairShade: "#332118",
-        skin: "#ffd5b8",
-        neckwear: "#6a9eff",
-        jacket: "#30466d",
-        jacketShadow: "#20314e",
-        shirt: "#dfe9ff",
-        shirtShadow: "#bfd0f0",
-        collar: "#ffffff",
-        sleeve: "#30466d",
-        hand: "#ffd5b8",
-        belt: "#6b87bd",
-        pants: "#2f3555",
-        shoes: "#1c1c2a",
-        lip: "#975f57",
-        glasses: true,
-        badge: "#9ed0ff"
-      }, {
-        pose: "seated",
-        typingPulse
-      });
-
-      pixelRect(deskX + 80, deskY + 66, 64, 10, "#30466d");
-      pixelRect(deskX + 88, deskY + 76, 14, 10, "#1c1c2a");
-      pixelRect(deskX + 120, deskY + 76, 14, 10, "#1c1c2a");
-      pixelRect(deskX + 84, deskY + 54, 68, 12, "rgba(0,0,0,0.10)");
-
-      drawCinematicPerson(gipX, gipY - 4, {
-        hair: "#342229",
-        hairShade: "#211319",
-        skin: "#ffd4bc",
-        neckwear: "#ff8fa3",
-        jacket: "#8c3248",
-        jacketShadow: "#682335",
-        shirt: "#ffdfe7",
-        shirtShadow: "#f1bfcd",
-        collar: "#fff0f4",
-        sleeve: "#8c3248",
-        hand: "#ffd4bc",
-        belt: "#6e3249",
-        pants: "#402534",
-        shoes: "#1d1118",
-        lip: "#9a5f68",
-        badge: "#ff9eb2"
-      }, {
-        pose: "walk",
-        step: gipStep,
-        briefcase: true
-      });
-
-      pixelRect(gipX + 2, gipY + 136, 88, 8, "rgba(0,0,0,0.16)");
-
-      ctx.fillStyle = "#dff8ff";
-      ctx.font = "20px Courier New";
-      ctx.fillText("Проектировщик", deskX + 34, deskY - 74);
-      ctx.fillStyle = "#9fd5ff";
-      ctx.font = "14px Courier New";
-      ctx.fillText("работает за компьютером", deskX + 18, deskY - 54);
-      pixelRect(deskX + 82, deskY - 50, 2, 18, "#9fd5ff");
-
-      ctx.fillStyle = "#ffe97c";
-      ctx.font = "18px Courier New";
-      ctx.fillText("ОФИС. ПОЗДНИЙ ВЕЧЕР.", 18, 28);
-      ctx.fillStyle = "#c8d7ff";
-      ctx.font = "14px Courier New";
-      ctx.fillText("23:14  |  Revit открыт  |  7 писем без ответа", 18, 48);
-
-      if (state.introFrame > 220) {
-        ctx.fillStyle = "#ffffff";
-        ctx.font = "20px Courier New";
-        ctx.fillText("ГИП", gipX + 10, gipY - 18);
-        ctx.fillStyle = "#ffb7c6";
-        ctx.font = "14px Courier New";
-        ctx.fillText("принес новые правки", gipX - 18, gipY);
-        pixelRect(gipX + 24, gipY + 6, 2, 26, "#ffb7c6");
-      }
-
-      pixelRect(18, HEIGHT - 164, WIDTH - 36, 138, "#fff8e8");
-      pixelRect(24, HEIGHT - 158, WIDTH - 48, 126, "#fff8e8");
-      ctx.strokeStyle = "#533b2a";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(18, HEIGHT - 164, WIDTH - 36, 138);
-      ctx.lineWidth = 1;
-      ctx.fillStyle = "#533b2a";
-      ctx.font = "16px Courier New";
-      ctx.fillText("СЦЕНА", 42, HEIGHT - 128);
-      ctx.fillText(introLines[0], 42, HEIGHT - 96);
-      ctx.fillText(introLines[1], 42, HEIGHT - 70);
-      ctx.fillStyle = "#364164";
-      ctx.fillText("После реплики ГИПа начнется игра", 42, HEIGHT - 42);
-    }
-
-    function drawCinematicPerson(x, y, palette, options = {}) {
-      const pose = options.pose || "stand";
-      const typingPulse = options.typingPulse || 0;
-      const step = options.step || 0;
-      const legShift = step > 0 ? 4 : 0;
-
-      pixelRect(x + 8, y + 106, 60, 10, "rgba(0,0,0,0.14)");
-
-      pixelRect(x + 22, y, 32, 10, palette.hair);
-      pixelRect(x + 16, y + 8, 44, 14, palette.hair);
-      pixelRect(x + 20, y + 4, 28, 4, palette.hairShade || "#2a1c17");
-      pixelRect(x + 20, y + 22, 36, 28, palette.skin);
-      pixelRect(x + 16, y + 28, 4, 12, "#ebb59c");
-      pixelRect(x + 56, y + 28, 4, 12, "#ebb59c");
-      pixelRect(x + 28, y + 48, 20, 4, "#ddb099");
-      pixelRect(x + 32, y + 52, 14, 10, palette.neckwear);
-      pixelRect(x + 28, y + 60, 22, 6, palette.collar || "#f7f8ff");
-      pixelRect(x + 18, y + 66, 40, 34, palette.jacket);
-      pixelRect(x + 26, y + 66, 24, 22, palette.shirt);
-      pixelRect(x + 28, y + 66, 9, 7, palette.collar || "#f7f8ff");
-      pixelRect(x + 39, y + 66, 9, 7, palette.collar || "#f7f8ff");
-      pixelRect(x + 28, y + 74, 20, 10, palette.shirtShadow || "#c8d5ef");
-      pixelRect(x + 18, y + 66, 5, 34, palette.jacketShadow || "#22314a");
-      pixelRect(x + 53, y + 66, 5, 34, palette.jacketShadow || "#22314a");
-      pixelRect(x + 22, y + 70, 4, 20, "#ffffff33");
-      pixelRect(x + 50, y + 70, 4, 20, "#00000022");
-      pixelRect(x + 34, y + 84, 10, 12, palette.neckwear);
-      pixelRect(x + 44, y + 84, 4, 12, palette.belt || "#4d5879");
-      pixelRect(x + 27, y + 28, 6, 3, "#4c342c");
-      pixelRect(x + 43, y + 28, 6, 3, "#4c342c");
-      pixelRect(x + 28, y + 33, 4, 4, "#241817");
-      pixelRect(x + 44, y + 33, 4, 4, "#241817");
-      pixelRect(x + 37, y + 33, 2, 10, "#cc9076");
-      pixelRect(x + 31, y + 40, 14, 3, "#f0c1a8");
-      pixelRect(x + 30, y + 46, 16, 3, palette.lip || "#8b5a4a");
-      if (palette.glasses) {
-        pixelRect(x + 25, y + 31, 10, 8, "#1b2a42");
-        pixelRect(x + 40, y + 31, 10, 8, "#1b2a42");
-        pixelRect(x + 35, y + 34, 5, 2, "#1b2a42");
-        pixelRect(x + 27, y + 33, 7, 5, "#c7efff");
-        pixelRect(x + 42, y + 33, 7, 5, "#c7efff");
-      }
-      if (palette.badge) {
-        pixelRect(x + 49, y + 79, 5, 8, palette.badge);
-      }
-
-      if (pose === "seated") {
-        pixelRect(x + 12, y + 70, 8, 20, palette.sleeve);
-        pixelRect(x + 56, y + 70, 8, 20, palette.sleeve);
-        pixelRect(x + 10, y + 88 + typingPulse, 12, 6, palette.hand);
-        pixelRect(x + 56, y + 87 - typingPulse, 12, 6, palette.hand);
-        pixelRect(x + 26, y + 100, 16, 10, palette.pants);
-        pixelRect(x + 42, y + 100, 16, 10, palette.pants);
-      } else {
-        pixelRect(x + 10, y + 70, 8, 28, palette.sleeve);
-        pixelRect(x + 58, y + 70, 8, 26, palette.sleeve);
-        pixelRect(x + 8, y + 90, 12, 8, palette.hand);
-        pixelRect(x + 56, y + 88, 12, 8, palette.hand);
-        pixelRect(x + 28, y + 100, 14, 28, palette.pants);
-        pixelRect(x + 42, y + 100, 14, 28, palette.pants);
-        pixelRect(x + 41, y + 100, 3, 28, "#00000033");
-        pixelRect(x + 27, y + 128, 15, 8, palette.shoes);
-        pixelRect(x + 43, y + 128, 15, 8, palette.shoes);
-        pixelRect(x + 28, y + 118 + legShift, 14, 5, "#00000018");
-        pixelRect(x + 42, y + 114 - legShift, 14, 5, "#00000018");
-      }
-
-      if (options.briefcase) {
-        pixelRect(x + 64, y + 86, 20, 28, "#3b2a1e");
-        pixelRect(x + 67, y + 90, 14, 18, "#6d4c34");
-        pixelRect(x + 70, y + 94, 8, 2, "#d9d2b7");
-      }
-    }
-
-    function drawPersonSprite(x, y, palette) {
-      pixelRect(x + 9, y, 18, 6, palette.hair);
-      pixelRect(x + 8, y + 5, 20, 8, palette.hair);
-      pixelRect(x + 10, y + 2, 16, 2, palette.hairShade || "#2b1b19");
-      pixelRect(x + 10, y + 8, 16, 14, palette.skin);
-      pixelRect(x + 8, y + 11, 2, 6, "#ebb59c");
-      pixelRect(x + 26, y + 11, 2, 6, "#ebb59c");
-      pixelRect(x + 10, y + 20, 16, 2, "#e0b59a");
-      pixelRect(x + 8, y + 18, 20, 5, palette.neckwear);
-      pixelRect(x + 5, y + 22, 26, 20, palette.jacket);
-      pixelRect(x + 10, y + 23, 16, 11, palette.shirt);
-      pixelRect(x + 11, y + 22, 14, 2, palette.collar || "#f5f5f5");
-      pixelRect(x + 12, y + 24, 5, 5, palette.collar || "#f5f5f5");
-      pixelRect(x + 19, y + 24, 5, 5, palette.collar || "#f5f5f5");
-      pixelRect(x + 6, y + 23, 3, 18, palette.jacketShadow || "#22314a");
-      pixelRect(x + 27, y + 23, 3, 18, palette.jacketShadow || "#22314a");
-      pixelRect(x + 7, y + 24, 4, 10, "#ffffff66");
-      pixelRect(x + 25, y + 24, 4, 10, "#00000022");
-      pixelRect(x + 2, y + 24, 6, 17, palette.sleeve);
-      pixelRect(x + 28, y + 24, 6, 17, palette.sleeve);
-      pixelRect(x + 0, y + 38, 8, 6, palette.hand);
-      pixelRect(x + 28, y + 38, 8, 6, palette.hand);
-      pixelRect(x + 11, y + 34, 4, 8, palette.neckwear);
-      pixelRect(x + 15, y + 34, 6, 8, palette.belt || "#4a4a66");
-      pixelRect(x + 15, y + 42, 6, 2, palette.belt || "#4a4a66");
-      pixelRect(x + 9, y + 42, 19, 1, "#00000022");
-      pixelRect(x + 8, y + 42, 10, 12, palette.pants);
-      pixelRect(x + 18, y + 42, 10, 12, palette.pants);
-      pixelRect(x + 17, y + 42, 2, 12, "#00000033");
-      pixelRect(x + 8, y + 54, 10, 4, palette.shoes);
-      pixelRect(x + 18, y + 54, 10, 4, palette.shoes);
-      pixelRect(x + 11, y + 10, 4, 2, "#3d241f");
-      pixelRect(x + 21, y + 10, 4, 2, "#3d241f");
-      pixelRect(x + 13, y + 12, 2, 2, "#241817");
-      pixelRect(x + 21, y + 12, 2, 2, "#241817");
-      pixelRect(x + 15, y + 17, 6, 2, "#c17e62");
-      pixelRect(x + 16, y + 14, 4, 2, "#cf8f75");
-      pixelRect(x + 15, y + 18, 6, 1, "#8a5845");
-      if (palette.glasses) {
-        pixelRect(x + 11, y + 11, 6, 5, "#18263e");
-        pixelRect(x + 19, y + 11, 6, 5, "#18263e");
-        pixelRect(x + 17, y + 12, 2, 2, "#18263e");
-        pixelRect(x + 12, y + 12, 4, 3, "#c9f0ff");
-        pixelRect(x + 20, y + 12, 4, 3, "#c9f0ff");
-      }
-      if (palette.badge) {
-        pixelRect(x + 24, y + 30, 3, 5, palette.badge);
-      }
-      if (palette.item === "tube") {
-        pixelRect(x + 29, y + 30, 10, 4, "#d7f3ff");
-        pixelRect(x + 37, y + 28, 3, 8, "#7bb5ff");
-      }
-      if (palette.item === "folder") {
-        pixelRect(x + 28, y + 28, 10, 12, "#fff0a8");
-        pixelRect(x + 29, y + 29, 8, 2, "#c08a2b");
-      }
-      if (palette.item === "phone") {
-        pixelRect(x + 29, y + 29, 6, 10, "#2f354f");
-        pixelRect(x + 30, y + 31, 4, 4, "#90e0ff");
-      }
-      if (palette.item === "crown") {
-        pixelRect(x + 12, y - 4, 12, 5, "#ffd76f");
-        pixelRect(x + 11, y - 2, 3, 3, "#ffd76f");
-        pixelRect(x + 17, y - 5, 3, 4, "#ffd76f");
-        pixelRect(x + 23, y - 2, 3, 3, "#ffd76f");
-      }
-    }
-
-    function drawPlayer() {
-      const p = state.player;
-      if (!p) return;
-
-      drawPersonSprite(p.x, p.y, {
-        hair: "#4d3325",
-        hairShade: "#332118",
-        skin: "#ffd5b8",
-        neckwear: "#6a9eff",
-        jacket: "#30466d",
-        jacketShadow: "#20314e",
-        shirt: "#dfe9ff",
-        collar: "#ffffff",
-        sleeve: "#30466d",
-        hand: "#ffd5b8",
-        belt: "#6b87bd",
-        pants: "#2f3555",
-        shoes: "#1c1c2a",
-        item: "tube",
-        glasses: true,
-        badge: "#9ed0ff"
-      });
-
-      ctx.fillStyle = "#dff8ff";
-      ctx.font = "16px Courier New";
-      ctx.fillText("Проектировщик", Math.max(8, p.x - 28), p.y - 12);
-    }
-
-    function drawEnemy(enemy) {
-      const palettes = {
-        glavspec: { hair: "#67432d", hairShade: "#44291c", skin: "#ffd8c0", neckwear: "#ffd76f", jacket: "#86512a", jacketShadow: "#663c1e", shirt: "#fff2c7", collar: "#fff7de", sleeve: "#86512a", hand: "#ffd8c0", pants: "#493225", shoes: "#24171a", item: "folder", badge: "#ffd76f" },
-        gip: { hair: "#342229", hairShade: "#211319", skin: "#ffd4bc", neckwear: "#ff8fa3", jacket: "#8c3248", jacketShadow: "#682335", shirt: "#ffdfe7", collar: "#fff0f4", sleeve: "#8c3248", hand: "#ffd4bc", pants: "#402534", shoes: "#1d1118", item: "phone", badge: "#ff9eb2" },
-        smezhnik: { hair: "#3f4f69", hairShade: "#2b374b", skin: "#ffd9be", neckwear: "#82ddff", jacket: "#2c708c", jacketShadow: "#1c5369", shirt: "#dff6ff", collar: "#effcff", sleeve: "#2c708c", hand: "#ffd9be", pants: "#23445b", shoes: "#162130", item: "folder", badge: "#8fe6ff" },
-        customer: { hair: "#4f2359", hairShade: "#37153f", skin: "#ffd1c0", neckwear: "#ffb3ff", jacket: "#7c2f86", jacketShadow: "#592261", shirt: "#f6ddff", collar: "#fff0ff", sleeve: "#7c2f86", hand: "#ffd1c0", pants: "#3f224a", shoes: "#23112e", item: "phone", badge: "#ffc4ff" }
-      };
-
-      drawPersonSprite(enemy.x, enemy.y, palettes[enemy.type] || palettes.customer);
-
-      pixelRect(enemy.x - 18, enemy.y - 34, enemy.w + 42, 16, "rgba(10, 15, 35, 0.9)");
-      pixelRect(enemy.x - 18, enemy.y - 15, enemy.w + 42, 8, "#141b33");
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "16px Courier New";
-      const text = enemy.label;
-      ctx.fillText(text, enemy.x - 12, enemy.y - 21);
-
-      pixelRect(enemy.x - 4, enemy.y - 14, enemy.w + 8, 6, "#1a1f3e");
-      pixelRect(enemy.x - 4, enemy.y - 14, ((enemy.w + 8) * enemy.hp) / enemy.maxHp, 6, "#7cf0ae");
-    }
-
-    function drawBoss(boss) {
-      drawPersonSprite(boss.x + 26, boss.y + 22, {
-        hair: "#31101e",
-        hairShade: "#1f0a14",
-        skin: "#ffd5c2",
-        neckwear: "#ffd76f",
-        jacket: "#a12253",
-        jacketShadow: "#76173d",
-        shirt: "#ffe3ec",
-        collar: "#fff2f6",
-        sleeve: "#a12253",
-        hand: "#ffd5c2",
-        pants: "#54122b",
-        shoes: "#200a14",
-        item: "crown",
-        badge: "#ffd76f"
-      });
-      pixelRect(boss.x + 76, boss.y + 54, 16, 18, "#fff18d");
-      pixelRect(boss.x + 78, boss.y + 58, 12, 3, "#aa7f1e");
-      pixelRect(boss.x + 78, boss.y + 64, 10, 3, "#aa7f1e");
-
-      pixelRect(boss.x - 24, boss.y - 42, 150, 18, "rgba(31, 8, 29, 0.9)");
-      pixelRect(boss.x - 10, boss.y - 20, boss.w + 20, 8, "#261035");
-      ctx.fillStyle = "#ffe97c";
-      ctx.font = "18px Courier New";
-      ctx.fillText(boss.label, boss.x - 16, boss.y - 28);
-      pixelRect(boss.x - 10, boss.y - 20, ((boss.w + 20) * boss.hp) / boss.maxHp, 8, "#3bd2ff");
-    }
-
-    function drawShots() {
-      state.shots.forEach((shot) => {
-        pixelRect(shot.x, shot.y, shot.w, shot.h, "#edf4ff");
-        pixelRect(shot.x + 1, shot.y + 1, shot.w - 2, shot.h - 2, "#f9fbff");
-        pixelRect(shot.x + shot.w - 4, shot.y + 1, 3, 3, "#d1d9ee");
-        pixelRect(shot.x + 3, shot.y + 2, 10, 1, "#7e90bf");
-        pixelRect(shot.x + 3, shot.y + 4, 8, 1, "#7e90bf");
-        pixelRect(shot.x + 3, shot.y + 6, 11, 1, "#7e90bf");
-      });
-    }
-
-    function drawBossShots() {
-      ctx.font = "14px Courier New";
-      state.bossShots.forEach((shot) => {
-        const x = shot.x - shot.w / 2;
-        const y = shot.y - shot.h / 2;
-        pixelRect(x, y, shot.w, shot.h, "#fff4cf");
-        pixelRect(x + 2, y + 2, shot.w - 4, shot.h - 4, "#fff4cf");
-        ctx.strokeStyle = "#533b2a";
-        ctx.lineWidth = 2;
-        ctx.strokeRect(x, y, shot.w, shot.h);
-        ctx.fillStyle = "#533b2a";
-        ctx.fillText(shot.text, x + 8, y + 15);
-      });
-      ctx.lineWidth = 1;
-    }
-
-    function drawParticles() {
-      state.particles.forEach((particle) => {
-        ctx.globalAlpha = Math.max(0, particle.life / 40);
-        pixelRect(particle.x, particle.y, 4, 4, particle.color);
-        ctx.globalAlpha = 1;
-      });
-    }
-
-    function drawFloatingTexts() {
-      ctx.font = "18px Courier New";
-      state.floatingTexts.forEach((item) => {
-        ctx.fillStyle = item.color;
-        ctx.fillText(item.text, item.x, item.y);
-      });
-    }
-
-    function drawSpeech() {
-      const targets = [];
-      if (state.enemies[0]) targets.push(state.enemies[0]);
-      if (state.boss) targets.push(state.boss);
-
-      ctx.font = "15px Courier New";
-      targets.forEach((target, index) => {
-        const text = target.line || "";
-        const boxW = Math.min(320, Math.max(200, text.length * 8.6 + 24));
-        const boxX = Math.max(14, Math.min(WIDTH - boxW - 14, target.x - 30));
-        const boxY = Math.max(18, target.y - 82 - index * 12);
-        pixelRect(boxX, boxY, boxW, 30, "#fff4cf");
-        pixelRect(boxX + 3, boxY + 3, boxW - 6, 24, "#fff4cf");
-        ctx.strokeStyle = "#533b2a";
-        ctx.lineWidth = 2;
-        ctx.strokeRect(boxX, boxY, boxW, 30);
-        ctx.fillStyle = "#533b2a";
-        ctx.fillText(text, boxX + 10, boxY + 19);
-      });
-      ctx.lineWidth = 1;
-    }
-
-    function drawOverlay() {
-      if (state.running || state.intro) {
-        return;
-      }
-
-      const isIdle = !state.gameOver && !state.win;
-      const titleY = Math.floor(HEIGHT * 0.28);
-      const messageY = titleY + 34;
-      const scoreY = messageY + 24;
-      const footerY = HEIGHT - 24;
-
-      ctx.fillStyle = "rgba(6, 8, 16, 0.72)";
-      ctx.fillRect(0, 0, WIDTH, HEIGHT);
-
-      ctx.textAlign = "center";
-      ctx.fillStyle = isIdle ? "#ffe97c" : (state.win ? "#7cf0ae" : "#ff8a8a");
-      ctx.font = "28px Courier New";
-      ctx.fillText(isIdle ? "НАЖМИТЕ СТАРТ" : (state.win ? "ЧАЙ ЗАСЛУЖЕН" : "ЗАВАЛ ПО ЧЕРТЕЖАМ"), WIDTH / 2, titleY);
-
-      ctx.fillStyle = "#fff1b8";
-      ctx.font = "16px Courier New";
-      ctx.fillText(state.message, WIDTH / 2, messageY);
-      if (!isIdle) {
-        ctx.fillText("Очки: " + state.score, WIDTH / 2, scoreY);
-      }
-
-      if (isIdle) {
-        ctx.fillText("Сначала будет короткая сцена с ГИПом, потом начнется игра", WIDTH / 2, scoreY);
-      } else if (!state.win) {
-        for (let i = 0; i < 12; i += 1) {
-          const x = 70 + (i % 6) * 96;
-          const y = 220 + Math.floor(i / 6) * 34;
-          pixelRect(x, y, 62, 28, "#e8edf7");
-          pixelRect(x + 4, y + 4, 54, 4, "#9aa4c8");
-          pixelRect(x + 4, y + 12, 36, 4, "#9aa4c8");
-          pixelRect(x + 4, y + 20, 46, 4, "#9aa4c8");
-        }
-        ctx.fillStyle = "#d6defa";
-        ctx.fillText("Email-ы, правки и PDF до полуночи", WIDTH / 2, HEIGHT - 58);
-      } else {
-        const cupY = 220;
-        pixelRect(WIDTH / 2 - 22, cupY, 44, 48, "#c68642");
-        pixelRect(WIDTH / 2 + 18, cupY + 8, 12, 18, "#c68642");
-        pixelRect(WIDTH / 2 + 21, cupY + 11, 6, 12, "#0c1125");
-        pixelRect(WIDTH / 2 - 18, cupY - 12, 36, 18, "#bdf8ff");
-        pixelRect(WIDTH / 2 - 16, cupY - 10, 32, 14, "#6f472d");
-        pixelRect(WIDTH / 2 - 12, cupY - 7, 24, 2, "#fff1b8");
-        pixelRect(WIDTH / 2 - 10, cupY - 3, 20, 1, "#ead6aa");
-        pixelRect(WIDTH / 2 - 22, cupY - 2, 44, 3, "#8b592f");
-        pixelRect(WIDTH / 2 - 16, cupY + 50, 32, 4, "#5a3520");
-        for (let i = 0; i < 10; i += 1) {
-          pixelRect(WIDTH / 2 + 34 + i * 10, cupY + 30 + (i % 2) * 4, 6, 6, "#fff1b8");
-        }
-        pixelRect(WIDTH / 2 - 4, cupY - 22, 3, 8, "#fff1b8");
-        pixelRect(WIDTH / 2 + 2, cupY - 26, 3, 12, "#fff1b8");
-        pixelRect(WIDTH / 2 + 8, cupY - 21, 3, 7, "#fff1b8");
-        ctx.fillText("Проектировщик наконец-то пьет чай", WIDTH / 2, HEIGHT - 58);
-      }
-
-      ctx.fillStyle = "#ffffff";
-      ctx.fillText(isIdle ? "Нажмите Enter или кнопку Старт" : "Нажмите Enter для новой смены", WIDTH / 2, footerY);
-      ctx.textAlign = "left";
-    }
-
-    function render() {
-      if (state.intro) {
-        drawIntro();
-        return;
-      }
-
-      drawBackground();
-      drawPlayer();
-      state.enemies.forEach(drawEnemy);
-      if (state.boss) drawBoss(state.boss);
-      drawShots();
-      drawBossShots();
-      drawParticles();
-      drawFloatingTexts();
-      drawSpeech();
-
-      ctx.fillStyle = "#ffe97c";
-      ctx.font = "14px Courier New";
-      ctx.fillText(state.messageTimer > 0 ? state.message : "Отбивайтесь от задач и дойдите до босса", 16, 24);
-      ctx.fillText("Q = чай", 16, 44);
-      ctx.fillText("M = music", 16, 64);
-      ctx.fillText("P = pause", 16, 84);
-
-      if (state.teaCooldown > 0) {
-        ctx.fillStyle = "#b6c4ff";
-        ctx.fillText("Чай перезаряжается: " + Math.ceil(state.teaCooldown / 60), 116, 44);
-      }
-
-      if (state.paused && !state.gameOver) {
-        ctx.fillStyle = "rgba(6, 8, 16, 0.62)";
-        ctx.fillRect(0, 0, WIDTH, HEIGHT);
-        ctx.fillStyle = "#fff1b8";
-        ctx.font = "28px Courier New";
-        ctx.textAlign = "center";
-        ctx.fillText("ПАУЗА", WIDTH / 2, HEIGHT / 2);
-        ctx.font = "16px Courier New";
-        ctx.fillText("Нажмите P или кнопку, чтобы продолжить", WIDTH / 2, HEIGHT / 2 + 28);
-        ctx.textAlign = "left";
-      }
-
-      drawOverlay();
-    }
-
-    function updateHud() {
-      scoreValue.textContent = state.score;
-      waveValue.textContent = state.wave;
-      stressValue.textContent = state.stress + " / 100";
-      stressBar.style.width = state.stress + "%";
-      stateValue.textContent = state.gameOver
-        ? (state.win ? "Чай" : "Аврал")
-        : (state.intro ? "Сцена" : (state.paused ? "Пауза" : (state.boss ? "Босс" : "В бою")));
-
-      if (state.boss) {
-        const percent = Math.max(0, Math.round((state.boss.hp / state.boss.maxHp) * 100));
-        bossValue.textContent = percent + "%";
-        bossBar.style.width = percent + "%";
-      } else {
-        bossValue.textContent = state.bossSpawned ? "0%" : "не пришел";
-        bossBar.style.width = state.bossSpawned ? "0%" : "0%";
-      }
-    }
-
-    let frame = 0;
-    function loop() {
-      frame += 1;
-      updateIntro();
-      updateGame(frame);
-      render();
-      requestAnimationFrame(loop);
-    }
-
-    window.addEventListener("keydown", (event) => {
-      state.keys[event.code] = true;
-      if (event.code === "Space") {
-        event.preventDefault();
-        fireShot();
-      }
-      if (event.code === "KeyQ") {
-        event.preventDefault();
-        drinkTea();
-      }
-      if (event.code === "KeyP") {
-        event.preventDefault();
-        togglePause();
-      }
-      if (event.code === "KeyM") {
-        event.preventDefault();
-        toggleMusic();
-      }
-      if (event.code === "Enter") {
-        if (state.intro) {
-          resetGame(false);
-        } else {
-          launchIntro();
-        }
-      }
+  }
+},{passive:false});
+function updateStick(touch){
+  const r=lstickZone.getBoundingClientRect();
+  const cx=r.left+r.width/2, cy=r.top+r.height/2;
+  let dx=touch.clientX-cx, dy=touch.clientY-cy;
+  const d=Math.hypot(dx,dy);
+  if(d>STICK_R){dx=dx/d*STICK_R;dy=dy/d*STICK_R;}
+  st.touchMove={x:dx/STICK_R,y:dy/STICK_R};
+  lstickHandle.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;
+}
+
+// Right pad buttons
+function padBtn(id,downFn,upFn){
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.addEventListener('touchstart',e=>{e.preventDefault();downFn&&downFn();},{passive:false});
+  el.addEventListener('touchend',e=>{e.preventDefault();upFn&&upFn();},{passive:false});
+}
+padBtn('btn-fire',()=>st.touchFire=true,()=>st.touchFire=false);
+padBtn('btn-tea',()=>tryTea());
+padBtn('btn-up',   ()=>st.keys['TouchUp']=true,   ()=>st.keys['TouchUp']=false);
+padBtn('btn-down', ()=>st.keys['TouchDown']=true, ()=>st.keys['TouchDown']=false);
+padBtn('btn-left', ()=>st.keys['TouchLeft']=true, ()=>st.keys['TouchLeft']=false);
+padBtn('btn-right',()=>st.keys['TouchRight']=true,()=>st.keys['TouchRight']=false);
+
+// ═══════════════════════════════════════════════════════
+// GAME ACTIONS
+// ═══════════════════════════════════════════════════════
+function tryFire(dx,dy){
+  if(st.phase!=='playing') return;
+  if(st.shotCd>0) return;
+  const ndx=dx||st.pdx, ndy=dy||st.pdy;
+  if(!ndx&&!ndy) return;
+  const len=Math.hypot(ndx,ndy);
+  const fx=ndx/len, fy=ndy/len;
+  const dmg=st.buffs.bigshot&&st.buffs.bigshot.uses>0?3:1;
+  const shots=[{x:st.px,y:st.py,vx:fx*SHOT_SPEED,vy:fy*SHOT_SPEED,dmg,rot:Math.atan2(fy,fx),life:2}];
+  if(st.buffs.dblshot&&st.buffs.dblshot.timer>0){
+    const perp={x:-fy*.3,y:fx*.3};
+    shots.push({x:st.px+perp.x*12,y:st.py+perp.y*12,vx:(fx+perp.x*.4)*SHOT_SPEED,vy:(fy+perp.y*.4)*SHOT_SPEED,dmg,rot:Math.atan2(fy,fx),life:2});
+    shots.push({x:st.px-perp.x*12,y:st.py-perp.y*12,vx:(fx-perp.x*.4)*SHOT_SPEED,vy:(fy-perp.y*.4)*SHOT_SPEED,dmg,rot:Math.atan2(fy,fx),life:2});
+  }
+  shots.forEach(s=>st.shots.push(s));
+  if(st.buffs.bigshot&&st.buffs.bigshot.uses>0){
+    st.buffs.bigshot.uses--;
+    if(st.buffs.bigshot.uses<=0) delete st.buffs.bigshot;
+  }
+  st.shotCd=SHOT_CD;
+}
+
+function tryTea(){
+  if(st.phase!=='playing') return;
+  if(st.teaCd>0){showMsg('Чай ещё не остыл! ('+(st.teaCd|0)+'с)',1.5);return;}
+  st.stress=Math.max(0,st.stress-25);
+  st.teaCd=TEA_CD;
+  sfxTea();
+  showMsg('Проектировщик выпил чай ☕ — нервы успокоились',2.5);
+  addParticles(st.px,st.py,'#b7fff1',12,60);
+  addFloat(st.px,st.py-20,'−25 стресса','#53d8a7');
+}
+
+function tryPause(){
+  if(st.phase==='playing'){st.phase='paused';audStop();}
+  else if(st.phase==='paused'){st.phase='playing';audStart();}
+}
+
+function toggleMusic(){
+  st.musicEnabled=!st.musicEnabled;
+  if(!st.musicEnabled){audStop();}
+  else if(st.phase==='playing'||st.phase==='wavepause'){audStart();}
+}
+
+// ═══════════════════════════════════════════════════════
+// GAME FLOW
+// ═══════════════════════════════════════════════════════
+async function startGame(){
+  // reset
+  Object.assign(st,{
+    phase:'intro',introTimer:3,
+    px:W/2,py:H/2,pdx:1,pdy:0,
+    shotCd:0,teaCd:0,
+    score:0,stress:0,wave:0,defeated:0,
+    enemies:[],shots:[],bossShots:[],particles:[],floats:[],pickups:[],
+    boss:null,bossSpawned:false,
+    spawnQueue:[],spawnTimer:0,
+    buffs:{},shakeT:0,
+    msgText:'Проектировщик вышел на смену',msgTimer:2.5
+  });
+  frame.style.boxShadow='';
+  canvas.style.transform='';
+  audSetTheme('normal');
+  if(st.musicEnabled) await audStart();
+  updateHUD();
+}
+
+function startWave(){
+  const wIdx=st.wave;
+  if(wIdx>=WAVES.length){
+    spawnBoss();
+    return;
+  }
+  const template=WAVES[wIdx];
+  // scale by wave
+  st.spawnQueue=template.slice();
+  st.spawnTimer=0.5;
+  st.phase='playing';
+  showMsg(`▶ ВОЛНА ${wIdx+1}`,2);
+}
+
+function spawnNextEnemy(){
+  if(!st.spawnQueue.length) return;
+  const type=st.spawnQueue.shift();
+  const tpl=ENEMY_TYPES[type];
+  const pos=randEdge();
+  const scale=1+st.wave*.08;
+  st.enemies.push({
+    type,
+    x:pos.x,y:pos.y,
+    hp:Math.ceil(tpl.hp*scale),maxHp:Math.ceil(tpl.hp*scale),
+    spd:tpl.spd*(1+st.wave*.05),
+    dmg:tpl.dmg,sc:tpl.sc,
+    state:'move',stateTimer:0,
+    zigPhase:Math.random()*Math.PI*2,
+    dodgeAngle:Math.random()*Math.PI*2,
+    shotCd:rnd(1.5,3),
+    quote:QUOTES[type][Math.floor(Math.random()*QUOTES[type].length)]
+  });
+}
+
+function spawnBoss(){
+  st.bossSpawned=true;
+  st.phase='bossentry';
+  st.bossEntryTimer=2.5;
+  audSetTheme('boss');
+  sfxBossEntry();
+  const scale=1+st.wave*.05;
+  st.boss={
+    x:W*0.75,y:H/2,
+    hp:Math.ceil(50*scale),maxHp:Math.ceil(50*scale),
+    spd:80,dmg:22,
+    vx:-60,vy:40,
+    phase:0,
+    shotCd:2,
+    summonCd:8,
+    quote:QUOTES.boss[0]
+  };
+  showMsg('⚠ ВЕЛИКИЙ ЗАКАЗЧИК ВЫШЕЛ НА СМЕНУ ⚠',3);
+}
+
+function spawnBossShot(fanCount){
+  if(!st.boss) return;
+  const b=st.boss;
+  const dx=st.px-b.x, dy=st.py-b.y;
+  const baseAngle=Math.atan2(dy,dx);
+  const spread=0.35;
+  for(let i=0;i<fanCount;i++){
+    const angle=baseAngle+(i-(fanCount-1)/2)*spread;
+    const q=QUOTES.boss[Math.floor(Math.random()*QUOTES.boss.length)];
+    const w=Math.min(200,Math.max(100,q.length*6.5+14));
+    st.bossShots.push({
+      x:b.x,y:b.y,
+      vx:Math.cos(angle)*200,vy:Math.sin(angle)*200,
+      text:q,w,life:4
     });
+  }
+}
 
-    window.addEventListener("keyup", (event) => {
-      state.keys[event.code] = false;
-    });
+function checkWaveCleared(){
+  if(st.enemies.length===0&&st.spawnQueue.length===0&&!st.bossSpawned){
+    st.wave++;
+    st.phase='wavepause';
+    st.wavePauseTimer=3;
+    showMsg(`✓ Волна пройдена! +50 очков`,2);
+    st.score+=50;
+  }
+}
 
-    startBtn.addEventListener("click", () => launchIntro());
-    pauseBtn.addEventListener("click", togglePause);
-    restartBtn.addEventListener("click", () => launchIntro());
-    musicBtn.addEventListener("click", toggleMusic);
+function addStress(amount,phrase){
+  st.stress=Math.min(100,st.stress+amount);
+  if(phrase) showMsg(phrase,2);
+  sfxStress();
+  if(st.stress>=100){
+    endGame(false);
+  }
+}
 
-    state.intro = false;
-    state.running = false;
-    state.message = "Нажмите START или Enter";
-    state.messageTimer = 9999;
-    stopMusic();
-    setMusicLabel("готова");
-    updateHud();
-    loop();
+function endGame(win){
+  st.phase=win?'win':'gameover';
+  lbSave(st.score,st.wave+1);
+  lbRender(true);
+  audStop();
+  if(win) sfxWin();
+  else sfxGameover();
+  frame.style.boxShadow='';
+  canvas.style.transform='';
+}
 
-    function postEmbedHeight() {
-      if (window.parent === window) {
-        return;
+// ═══════════════════════════════════════════════════════
+// UPDATE
+// ═══════════════════════════════════════════════════════
+function update(dt){
+  if(st.phase==='playing') updatePlaying(dt);
+  else if(st.phase==='intro') updateIntro(dt);
+  else if(st.phase==='wavepause') updateWavePause(dt);
+  else if(st.phase==='bossentry') updateBossEntry(dt);
+  else if(st.phase==='paused') return;
+  // always update particles/floats
+  updateParticles(dt);
+  updateFloats(dt);
+  if(st.msgTimer>0) st.msgTimer-=dt;
+  st.frame++;
+}
+
+function updateIntro(dt){
+  st.introTimer-=dt;
+  if(st.introTimer<=0) startWave();
+}
+function updateWavePause(dt){
+  st.wavePauseTimer-=dt;
+  if(st.wavePauseTimer<=0) startWave();
+}
+function updateBossEntry(dt){
+  st.bossEntryTimer-=dt;
+  if(st.bossEntryTimer<=0){
+    st.phase='playing';
+    showMsg('⚔ БЕЙТЕ ЧЕРТЕЖАМИ!',2);
+  }
+}
+
+function updatePlaying(dt){
+  // timers
+  if(st.shotCd>0) st.shotCd-=dt;
+  if(st.teaCd>0)  st.teaCd-=dt;
+  // buff timers
+  for(const k of Object.keys(st.buffs)){
+    if(st.buffs[k].timer!==undefined){
+      st.buffs[k].timer-=dt;
+      if(st.buffs[k].timer<=0) delete st.buffs[k];
+    }
+  }
+
+  // ── player movement ──
+  let mdx=0,mdy=0;
+  if(st.keys['KeyW']||st.keys['ArrowUp']||st.keys['TouchUp'])    mdy-=1;
+  if(st.keys['KeyS']||st.keys['ArrowDown']||st.keys['TouchDown']) mdy+=1;
+  if(st.keys['KeyA']||st.keys['ArrowLeft']||st.keys['TouchLeft']) mdx-=1;
+  if(st.keys['KeyD']||st.keys['ArrowRight']||st.keys['TouchRight'])mdx+=1;
+  // touch joystick
+  if(Math.abs(st.touchMove.x)>.15||Math.abs(st.touchMove.y)>.15){
+    mdx=st.touchMove.x; mdy=st.touchMove.y;
+  }
+  const stressSlow=st.stress>=80?.85:1;
+  const speedMult=(st.buffs.speed&&st.buffs.speed.timer>0?1.3:1)*stressSlow;
+  if(mdx||mdy){
+    const ml=Math.hypot(mdx,mdy);
+    st.px=clamp(st.px+(mdx/ml)*PLAYER_SPEED*speedMult*dt,18,W-18);
+    st.py=clamp(st.py+(mdy/ml)*PLAYER_SPEED*speedMult*dt,18,H-18);
+    st.pdx=mdx/ml; st.pdy=mdy/ml;
+  }
+  // touch fire
+  if(st.touchFire) tryFire(st.pdx,st.pdy);
+
+  // ── spawn queue ──
+  if(st.spawnQueue.length>0){
+    st.spawnTimer-=dt;
+    if(st.spawnTimer<=0){
+      spawnNextEnemy();
+      st.spawnTimer=rnd(.6,1.4);
+    }
+  } else {
+    checkWaveCleared();
+  }
+
+  // ── shots ──
+  for(const s of st.shots){
+    s.x+=s.vx*dt; s.y+=s.vy*dt;
+    s.life-=dt; s.rot=(s.rot||0)+dt*8;
+  }
+  st.shots=st.shots.filter(s=>s.life>0&&s.x>-20&&s.x<W+20&&s.y>-20&&s.y<H+20);
+
+  // ── boss shots ──
+  for(const b of st.bossShots){
+    b.x+=b.vx*dt; b.y+=b.vy*dt; b.life-=dt;
+    // collide with player
+    const pr2=pRect();
+    const bh={x:b.x-b.w/2,y:b.y-11,w:b.w,h:22};
+    if(overlap(pr2,bh)){
+      addStress(8,b.text);
+      addParticles(st.px,st.py,'#ff4d6d',8,80);
+      b.life=0;
+    }
+    // collide with player shots
+    for(const s of st.shots){
+      if(overlap({x:s.x-9,y:s.y-6,w:18,h:12},bh)){
+        addPaperBurst(b.x,b.y);
+        addFloat(b.x,b.y-10,'ОТКЛОНЕНО','#9de6ff');
+        st.score+=5;
+        b.life=0;
+        s.life=0;
+        sfxHit();
+        st.stress=Math.max(0,st.stress-2);
       }
-      window.parent.postMessage({
-        type: "deadline-panic-resize",
-        height: Math.max(
-          document.documentElement.scrollHeight,
-          document.body.scrollHeight
-        )
-      }, "*");
+    }
+  }
+  st.bossShots=st.bossShots.filter(b=>b.life>0&&b.x>-250&&b.x<W+250&&b.y>-60&&b.y<H+60);
+
+  // ── enemies ──
+  updateEnemies(dt);
+
+  // ── boss ──
+  if(st.boss) updateBoss(dt);
+
+  // ── pickups ──
+  const pr2=pRect();
+  for(const p of st.pickups){
+    p.life-=dt;
+    if(overlap({x:p.x-10,y:p.y-10,w:20,h:20},pr2)){
+      applyPickup(p);
+      p.life=0;
+    }
+  }
+  st.pickups=st.pickups.filter(p=>p.life>0);
+
+  // ── shot-enemy collisions ──
+  for(const s of st.shots){
+    if(s.life<=0) continue;
+    for(const e of st.enemies){
+      const eh={x:e.x-ENEMY_TYPES[e.type].size/2,y:e.y-ENEMY_TYPES[e.type].size/2,
+               w:ENEMY_TYPES[e.type].size,h:ENEMY_TYPES[e.type].size};
+      if(overlap({x:s.x-9,y:s.y-6,w:18,h:12},eh)){
+        hitEnemy(e,s.dmg); s.life=0; break;
+      }
+    }
+    if(s.life>0&&st.boss){
+      const bh={x:st.boss.x-32,y:st.boss.y-26,w:64,h:52};
+      if(overlap({x:s.x-9,y:s.y-6,w:18,h:12},bh)){
+        hitBoss(s.dmg); s.life=0;
+      }
+    }
+  }
+
+  // ── remove dead enemies ──
+  st.enemies=st.enemies.filter(e=>{
+    if(e.hp<=0){
+      resolveKill(e);
+      return false;
+    }
+    // off-screen for too long
+    if(e.x<-80||e.x>W+80||e.y<-80||e.y>H+80){
+      addStress(6,'Задача проскочила незамеченной!');
+      return false;
+    }
+    return true;
+  });
+
+  updateHUD();
+}
+
+function updateEnemies(dt){
+  for(const e of st.enemies){
+    const tpl=ENEMY_TYPES[e.type];
+    const dx=st.px-e.x, dy=st.py-e.y;
+    const d=Math.hypot(dx,dy)||1;
+    let vx=0,vy=0;
+
+    if(tpl.beh==='direct'){
+      vx=(dx/d)*e.spd;
+      vy=(dy/d)*e.spd;
+    } else if(tpl.beh==='zigzag'){
+      e.zigPhase+=dt*3;
+      const perp={x:-dy/d,y:dx/d};
+      vx=(dx/d)*e.spd+perp.x*Math.sin(e.zigPhase)*60;
+      vy=(dy/d)*e.spd+perp.y*Math.sin(e.zigPhase)*60;
+    } else if(tpl.beh==='stomp'){
+      e.stateTimer-=dt;
+      if(e.state==='move'){
+        vx=(dx/d)*e.spd; vy=(dy/d)*e.spd;
+        if(d<120&&e.stateTimer<=0){e.state='stop';e.stateTimer=.9;}
+      } else {
+        // stopped — throw task
+        if(e.stateTimer<=0){
+          throwEnemyShot(e);
+          e.state='move'; e.stateTimer=rnd(1.5,3);
+        }
+      }
+    } else if(tpl.beh==='shoot'){
+      // slow creep
+      vx=(dx/d)*e.spd*.5; vy=(dy/d)*e.spd*.5;
+      e.shotCd-=dt;
+      if(e.shotCd<=0){
+        throwEnemyShot(e);
+        e.shotCd=rnd(2,3.5);
+      }
+    } else if(tpl.beh==='dodge'){
+      // fast erratic
+      e.dodgeAngle+=dt*(rnd(2,5));
+      vx=(dx/d)*e.spd+Math.cos(e.dodgeAngle)*50;
+      vy=(dy/d)*e.spd+Math.sin(e.dodgeAngle)*50;
     }
 
-    window.addEventListener("load", postEmbedHeight);
-    window.addEventListener("resize", postEmbedHeight);
+    e.x+=vx*dt; e.y+=vy*dt;
 
-    if (typeof ResizeObserver === "function") {
-      const embedResizeObserver = new ResizeObserver(() => postEmbedHeight());
-      embedResizeObserver.observe(document.body);
+    // collide with player
+    const pHit={x:st.px-10,y:st.py-10,w:20,h:20};
+    const eHit={x:e.x-tpl.size/2,y:e.y-tpl.size/2,w:tpl.size,h:tpl.size};
+    if(overlap(pHit,eHit)){
+      addStress(e.dmg,e.quote);
+      addParticles(st.px,st.py,'#ff4d6d',10,100);
+      e.hp=0; // remove enemy on contact
     }
-  </script>
+  }
+}
+
+function throwEnemyShot(e){
+  const dx=st.px-e.x, dy=st.py-e.y;
+  const d=Math.hypot(dx,dy)||1;
+  const q=QUOTES[e.type][Math.floor(Math.random()*QUOTES[e.type].length)];
+  e.quote=q;
+  const w=Math.min(180,Math.max(90,q.length*6+12));
+  st.bossShots.push({
+    x:e.x,y:e.y,
+    vx:(dx/d)*170,vy:(dy/d)*170,
+    text:q,w,life:3.5
+  });
+}
+
+function updateBoss(dt){
+  const b=st.boss;
+  const maxHp=b.maxHp;
+  // phase transitions
+  if(b.hp<=maxHp*.34&&b.phase<2){
+    b.phase=2; b.spd=120; b.shotCd=0.8;
+    showMsg('⚠ ВЕЛИКИЙ ЗАКАЗЧИК ВЗБЕСИЛСЯ!',2.5);
+    addParticles(b.x,b.y,'#ff2244',20,150);
+  } else if(b.hp<=maxHp*.68&&b.phase<1){
+    b.phase=1; b.spd=100; b.shotCd=1.4;
+    showMsg('⚠ ЗАКАЗЧИК РАЗОЗЛИЛСЯ!',2.5);
+    addParticles(b.x,b.y,'#ff8844',16,120);
+  }
+  // movement — bounce around arena
+  b.x+=b.vx*dt; b.y+=b.vy*dt;
+  if(b.x<60||b.x>W-60)  b.vx*=-1;
+  if(b.y<50||b.y>H-50)  b.vy*=-1;
+  b.x=clamp(b.x,60,W-60); b.y=clamp(b.y,50,H-50);
+  // speed drift
+  const targetSpd=b.spd;
+  const curSpd=Math.hypot(b.vx,b.vy);
+  if(Math.abs(curSpd-targetSpd)>5){
+    const f=targetSpd/curSpd;
+    b.vx*=f; b.vy*=f;
+  }
+
+  // shoot
+  b.shotCd-=dt;
+  if(b.shotCd<=0){
+    const fans=b.phase===0?1:b.phase===1?3:5;
+    spawnBossShot(fans);
+    b.shotCd=b.phase===0?2:b.phase===1?1.5:1;
+  }
+  // phase 3: summon minions
+  if(b.phase===2){
+    b.summonCd-=dt;
+    if(b.summonCd<=0){
+      for(let i=0;i<2;i++){
+        const pos=randEdge();
+        const types=['glavspec','smezhnik'];
+        const type=types[i%2];
+        const tpl=ENEMY_TYPES[type];
+        st.enemies.push({
+          type,x:pos.x,y:pos.y,
+          hp:tpl.hp,maxHp:tpl.hp,spd:tpl.spd*1.3,
+          dmg:tpl.dmg,sc:0,
+          state:'move',stateTimer:0,zigPhase:0,dodgeAngle:0,
+          shotCd:3,
+          quote:'Прислан заказчиком!'
+        });
+      }
+      b.summonCd=8;
+      showMsg('Заказчик призвал помощников!',2);
+    }
+  }
+  // contact damage
+  const pHit={x:st.px-10,y:st.py-10,w:20,h:20};
+  if(overlap(pHit,{x:b.x-32,y:b.y-26,w:64,h:52})){
+    addStress(b.dmg,'Великий заказчик налетел с правками!');
+  }
+}
+
+function hitEnemy(e,dmg){
+  e.hp-=dmg;
+  addPaperBurst(e.x,e.y);
+  sfxHit();
+  addFloat(e.x,e.y-18,'-лист','#ffd76f');
+}
+
+function hitBoss(dmg){
+  st.boss.hp-=dmg;
+  addParticles(st.boss.x,st.boss.y,'#ff4d6d',6,80);
+  sfxHit();
+  addFloat(st.boss.x,st.boss.y-40,'-лист','#ffd76f');
+  if(st.boss.hp<=0){
+    // win!
+    addParticles(st.boss.x,st.boss.y,'#ffd700',30,200);
+    addFloat(st.boss.x,st.boss.y,'ЧАЙ ЗАСЛУЖЕН!','#53d8a7');
+    st.boss=null;
+    sfxWin();
+    endGame(true);
+  }
+  updateHUD();
+}
+
+function resolveKill(e){
+  st.score+=e.sc;
+  st.defeated++;
+  st.stress=Math.max(0,st.stress-1);
+  addPaperBurst(e.x,e.y);
+  sfxKill();
+  addFloat(e.x,e.y,'+'+e.sc,'#53d8a7');
+  // pickup drop 20%
+  if(Math.random()<.2){
+    const types=Object.keys(PICKUPS);
+    const type=types[Math.floor(Math.random()*types.length)];
+    st.pickups.push({x:e.x,y:e.y,type,life:8});
+    addFloat(e.x,e.y+12,PICKUPS[type].icon,'#ffd76f');
+  }
+}
+
+function applyPickup(p){
+  sfxPickup();
+  if(p.type==='tea'){
+    st.stress=Math.max(0,st.stress-25);
+    addFloat(p.x,p.y,'−25 стресса','#53d8a7');
+  } else if(p.type==='dblshot'){
+    st.buffs.dblshot={timer:10};
+    addFloat(p.x,p.y,'2× чертёж','#ffd76f');
+  } else if(p.type==='speed'){
+    st.buffs.speed={timer:8};
+    addFloat(p.x,p.y,'Ускорение!','#53d8a7');
+  } else if(p.type==='bigshot'){
+    st.buffs.bigshot={uses:5};
+    addFloat(p.x,p.y,'3× урон (×5)','#9de6ff');
+  }
+}
+
+function updateParticles(dt){
+  for(const p of st.particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;}
+  st.particles=st.particles.filter(p=>p.life>0);
+}
+function updateFloats(dt){
+  for(const f of st.floats){f.y-=30*dt;f.life-=dt;}
+  st.floats=st.floats.filter(f=>f.life>0);
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════
+function render(){
+  ctx.clearRect(0,0,W,H);
+  drawBackground();
+
+  if(st.phase==='title'){drawTitle();return;}
+
+  // game world
+  // pickups
+  for(const p of st.pickups) drawPickup(p);
+  // enemies
+  for(const e of st.enemies) drawEnemy(e);
+  // boss
+  if(st.boss) drawBoss(st.boss);
+  // player (only when not in title/gameover)
+  if(st.phase!=='gameover'&&st.phase!=='win'){
+    drawPlayer(st.px,st.py,st.pdx,st.pdy);
+  }
+  // shots
+  for(const s of st.shots) drawBlueprint(s);
+  // boss shots
+  for(const b of st.bossShots) drawBossShot(b);
+  // particles
+  for(const p of st.particles){
+    ctx.globalAlpha=Math.max(0,p.life/p.maxLife);
+    pr(p.x-p.size/2,p.y-p.size/2,p.size,p.size,p.color);
+  }
+  ctx.globalAlpha=1;
+  // floats
+  for(const f of st.floats){
+    ctx.globalAlpha=Math.max(0,f.life/f.maxLife);
+    ctx.font='bold 11px "Courier New"';
+    ctx.textAlign='center';
+    ctx.fillStyle=f.color;
+    ctx.fillText(f.text,f.x,f.y);
+  }
+  ctx.globalAlpha=1;
+  // message
+  if(st.msgTimer>0){
+    const alpha=Math.min(1,st.msgTimer/.5);
+    ctx.globalAlpha=alpha;
+    ctx.font='bold 13px "Courier New"';
+    ctx.textAlign='center';
+    const tw=ctx.measureText(st.msgText).width+20;
+    pr(W/2-tw/2,H-36,tw,20,'rgba(0,0,0,.7)');
+    ctx.fillStyle='#f6e7b5';
+    ctx.fillText(st.msgText,W/2,H-22);
+    ctx.globalAlpha=1;
+  }
+  // wave pause overlay
+  if(st.phase==='wavepause'||st.phase==='intro'){
+    ctx.globalAlpha=.55;
+    pr(0,0,W,H,'#0d1021');
+    ctx.globalAlpha=1;
+    ctx.font='bold 32px "Courier New"';
+    ctx.textAlign='center';
+    ctx.fillStyle='#ffd76f';
+    ctx.fillText(st.phase==='intro'?'СМЕНА НАЧИНАЕТСЯ':'ВОЛНА '+(st.wave),W/2,H/2-16);
+    ctx.font='bold 14px "Courier New"';
+    ctx.fillStyle='#c6d0ff';
+    ctx.fillText(st.phase==='intro'?'Проектировщик готовится…':'Передышка…',W/2,H/2+14);
+  }
+  // boss entry overlay
+  if(st.phase==='bossentry'){
+    const t=st.bossEntryTimer;
+    ctx.globalAlpha=Math.min(.75,2.5-t);
+    pr(0,0,W,H,'#0d1021');
+    ctx.globalAlpha=Math.min(1,(2.5-t)*2);
+    ctx.font='bold 30px "Courier New"';
+    ctx.textAlign='center';
+    ctx.fillStyle='#ff4d6d';
+    ctx.fillText('⚠ ВЕЛИКИЙ ЗАКАЗЧИК ⚠',W/2,H/2-16);
+    ctx.font='bold 14px "Courier New"';
+    ctx.fillStyle='#f6e7b5';
+    ctx.fillText('ВЫШЕЛ НА СМЕНУ',W/2,H/2+14);
+    ctx.globalAlpha=1;
+    if(st.boss) drawBoss(st.boss);
+  }
+  // pause overlay
+  if(st.phase==='paused'){
+    ctx.globalAlpha=.6;
+    pr(0,0,W,H,'#0d1021');
+    ctx.globalAlpha=1;
+    ctx.font='bold 28px "Courier New"';
+    ctx.textAlign='center';
+    ctx.fillStyle='#ffd76f';
+    ctx.fillText('ПАУЗА',W/2,H/2-10);
+    ctx.font='14px "Courier New"';
+    ctx.fillStyle='#c6d0ff';
+    ctx.fillText('Нажмите P или Esc для продолжения',W/2,H/2+18);
+  }
+  // game over / win overlay
+  if(st.phase==='gameover'||st.phase==='win'){
+    ctx.globalAlpha=.75;
+    pr(0,0,W,H,'#0d1021');
+    ctx.globalAlpha=1;
+    const win=st.phase==='win';
+    ctx.font='bold 32px "Courier New"';
+    ctx.textAlign='center';
+    ctx.fillStyle=win?'#ffd76f':'#ff4d6d';
+    ctx.fillText(win?'ЧАЙ ЗАСЛУЖЕН!':'ВЫ СИДИТЕ ДО НОЧИ',W/2,H/2-40);
+    ctx.font='bold 18px "Courier New"';
+    ctx.fillStyle='#f6e7b5';
+    ctx.fillText(`Очки: ${st.score}   Волна: ${st.wave+1}`,W/2,H/2);
+    ctx.font='14px "Courier New"';
+    ctx.fillStyle='#c6d0ff';
+    ctx.fillText(win?'Проектировщик наконец выпьет чай':'Все разделы сданы с опозданием',W/2,H/2+24);
+    ctx.font='bold 14px "Courier New"';
+    ctx.fillStyle='#ff8c42';
+    ctx.fillText('Нажмите Enter или кнопку Старт для повтора',W/2,H/2+54);
+  }
+  applyStressEffects();
+}
+
+function drawTitle(){
+  // title screen
+  ctx.font='bold 36px "Courier New"';
+  ctx.textAlign='center';
+  ctx.fillStyle='#ffd76f';
+  ctx.fillText('DEADLINE PANIC',W/2,H/2-60);
+  ctx.font='bold 16px "Courier New"';
+  ctx.fillStyle='#c6d0ff';
+  ctx.fillText('Проектировщик против всех',W/2,H/2-28);
+  ctx.font='14px "Courier New"';
+  ctx.fillStyle='#f6e7b5';
+  ctx.fillText('Отбивайся чертежами от правок, коллизий и заказчиков',W/2,H/2+10);
+  // blinking start prompt
+  if(Math.floor(st.frame/30)%2===0){
+    ctx.font='bold 16px "Courier New"';
+    ctx.fillStyle='#ff8c42';
+    ctx.fillText('▶ НАЖМИТЕ ENTER ИЛИ КНОПКУ СТАРТ',W/2,H/2+50);
+  }
+  // draw example player sprite
+  drawPlayer(W/2,H/2+130,1,0);
+  ctx.font='11px "Courier New"';
+  ctx.fillStyle='#c6d0ff';
+  ctx.fillText('Проектировщик',W/2,H/2+158);
+}
+
+// ═══════════════════════════════════════════════════════
+// HUD
+// ═══════════════════════════════════════════════════════
+function updateHUD(){
+  uScore.textContent=st.score;
+  uWave.textContent=(st.wave+1)+(st.bossSpawned?' (БОСС!)':'');
+  uStressVal.textContent=Math.round(st.stress)+'%';
+  uStressBar.style.width=st.stress+'%';
+  const phases={'title':'Заставка','intro':'Начало','playing':'Смена',
+                'wavepause':'Передышка','bossentry':'Босс!','paused':'Пауза',
+                'gameover':'Поражение','win':'Победа!'};
+  uState.textContent=phases[st.phase]||st.phase;
+  // boss HP
+  if(st.boss){
+    uBossRow.style.display='block';
+    const pct=Math.round(st.boss.hp/st.boss.maxHp*100);
+    uBossVal.textContent=pct+'%';
+    uBossBar.style.width=pct+'%';
+  } else {
+    uBossRow.style.display='none';
+  }
+  // buffs
+  const names={dblshot:'2× чертёж',speed:'Ускорение',bigshot:'3× урон'};
+  const tags=Object.entries(st.buffs).map(([k,v])=>{
+    if(v.timer!==undefined) return `<span class="buff-badge">${names[k]||k} ${Math.ceil(v.timer)}с</span>`;
+    if(v.uses!==undefined) return `<span class="buff-badge">${names[k]||k} ×${v.uses}</span>`;
+    return '';
+  }).join('');
+  uBuffs.innerHTML=tags;
+  // tea cooldown
+  if(st.teaCd>0){
+    uBuffs.innerHTML+= `<span class="buff-badge" style="color:#53d8a7">☕ ${Math.ceil(st.teaCd)}с</span>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// GAME LOOP
+// ═══════════════════════════════════════════════════════
+let lastTime=0;
+function loop(ts){
+  const dt=Math.min((ts-lastTime)/1000,.05);
+  lastTime=ts;
+  update(dt);
+  render();
+  requestAnimationFrame(loop);
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded',()=>{
+  lbRender();
+  updateHUD();
+  requestAnimationFrame(ts=>{lastTime=ts;requestAnimationFrame(loop);});
+});
+</script>
 </body>
 </html>
